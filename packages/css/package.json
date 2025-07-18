@@ -1,0 +1,20 @@
+{
+  "name": "@wisburg/design-tokens-css",
+  "version": "1.0.0",
+  "description": "Design tokens CSS variables and utilities for web applications",
+  "main": "index.js",
+  "module": "index.mjs",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./index.js",
+      "import": "./index.mjs",
+      "types": "./index.d.ts"
+    },
+    "./css/variables.css": "./css/variables.css",
+    "./tokens.json": "./tokens.json"
+  },
+  "sideEffects": [
+    "./css/variables.css"
+  ]
+}

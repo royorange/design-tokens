@@ -31,13 +31,19 @@ async function loadTokens() {
  */
 async function transformToStandardFormat(tokens) {
   // 使用 token-transformer 处理引用
-  const resolved = await transformTokens(tokens, ['global', 'light', 'dark'], {
+  const setsToUse = ['global', 'light', 'dark']; // 要使用的 token 集合
+  const excludes = []; // 不排除任何集合
+  const transformerOptions = {
     expandTypography: true,
     expandShadow: true,
     expandComposition: true,
+    expandBorder: true,
     preserveRawValue: false,
+    throwErrorWhenNotResolved: false,
     resolveReferences: true
-  });
+  };
+
+  const resolved = await transformTokens(tokens, setsToUse, excludes, transformerOptions);
 
   return resolved;
 }
