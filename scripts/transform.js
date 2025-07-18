@@ -30,22 +30,32 @@ async function loadTokens() {
  * 转换 tokens 到标准格式
  */
 async function transformToStandardFormat(tokens) {
-  // 使用 token-transformer 处理引用
-  const setsToUse = ['global', 'light', 'dark']; // 要使用的 token 集合
-  const excludes = []; // 不排除任何集合
   const transformerOptions = {
     expandTypography: true,
     expandShadow: true,
     expandComposition: true,
     expandBorder: true,
-    preserveRawValue: false,
+    preserveRawValue: true,  // 保留原始值，这样可以看到引用
     throwErrorWhenNotResolved: false,
     resolveReferences: true
   };
 
-  const resolved = await transformTokens(tokens, setsToUse, excludes, transformerOptions);
+  // 分别处理每个主题以保持结构
+  const result = {};
+  
+  // 处理 global tokens
+  const globalResolved = await transformTokens(tokens, ['global'], [], transformerOptions);
+  result.global = globalResolved;
+  
+  // 处理 light 主题
+  const lightResolved = await transformTokens(tokens, ['global', 'light'], [], transformerOptions);
+  result.light = lightResolved;
+  
+  // 处理 dark 主题
+  const darkResolved = await transformTokens(tokens, ['global', 'dark'], [], transformerOptions);
+  result.dark = darkResolved;
 
-  return resolved;
+  return result;
 }
 
 /**
@@ -69,19 +79,37 @@ function generateStandardTokens(resolved) {
     }
   };
 
-  // 提取原始值
-  standard.primitive.color = resolved.color || {};
-  standard.primitive.spacing = resolved.spacing || {};
-  standard.primitive.radius = resolved.radius || {};
-  standard.primitive.fontSize = resolved.fontSize || {};
+  // 提取原始值 - 从 global 集合中
+  if (resolved.global) {
+    standard.primitive.color = resolved.global.color || {};
+    standard.primitive.spacing = resolved.global.spacing || {};
+    standard.primitive.radius = resolved.global.radius || {};
+    standard.primitive.fontSize = resolved.global.fontSize || {};
+  }
 
-  // 提取语义化 tokens
-  ['light', 'dark'].forEach(theme => {
-    if (resolved[theme]) {
-      standard.semantic[theme] = resolved[theme].semantic || {};
-      standard.component[theme] = resolved[theme].component || {};
+  // 提取 light 主题的语义化和组件 tokens
+  if (resolved.light) {
+    // Light 主题的 semantic tokens
+    if (resolved.light.semantic) {
+      standard.semantic.light = resolved.light.semantic;
     }
-  });
+    // Light 主题的 component tokens
+    if (resolved.light.component) {
+      standard.component.light = resolved.light.component;
+    }
+  }
+
+  // 提取 dark 主题的语义化和组件 tokens
+  if (resolved.dark) {
+    // Dark 主题的 semantic tokens
+    if (resolved.dark.semantic) {
+      standard.semantic.dark = resolved.dark.semantic;
+    }
+    // Dark 主题的 component tokens
+    if (resolved.dark.component) {
+      standard.component.dark = resolved.dark.component;
+    }
+  }
 
   return standard;
 }
@@ -136,8 +164,19 @@ async function main() {
     
     // 调试：查看 resolved 结构
     console.log('Resolved structure:', Object.keys(resolved));
+    
+    // 调试：查看更详细的结构
     if (resolved.global) {
       console.log('Global keys:', Object.keys(resolved.global));
+    }
+    if (resolved.light) {
+      console.log('Light keys:', Object.keys(resolved.light));
+      if (resolved.light.semantic) {
+        console.log('Light semantic:', JSON.stringify(resolved.light.semantic, null, 2).substring(0, 200));
+      }
+    }
+    if (resolved.dark) {
+      console.log('Dark keys:', Object.keys(resolved.dark));
     }
     
     // 3. 生成标准格式
