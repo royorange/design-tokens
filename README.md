@@ -10,7 +10,7 @@
 
 - 🎨 **三层 Token 架构**：Primitive → Semantic → Component
 - 🔄 **自动化同步**：Figma 更新自动触发 CI/CD 构建
-- 📦 **多平台支持**：Flutter、React、Tailwind CSS
+- 📦 **多平台支持**：Flutter、Tailwind CSS、CSS 变量
 - 🌓 **暗黑模式**：内置明暗主题支持
 - 🔧 **零破坏性**：完全兼容现有代码
 - 📝 **类型安全**：TypeScript 和 Dart 强类型支持
@@ -79,7 +79,7 @@ npm run build
 # 构建特定平台
 npm run build:flutter
 npm run build:tailwind
-npm run build:react
+npm run build:css
 ```
 
 ## 📦 平台集成
@@ -149,40 +149,45 @@ module.exports = {
 </div>
 ```
 
-### React/Next.js 集成
+### CSS 变量集成（React/Vue/原生 JS）
 
 ```bash
-npm install @wisburg/design-tokens-react
+npm install @wisburg/design-tokens-css
 ```
 
-```typescript
-// 方式1：CSS 变量
-import '@wisburg/design-tokens-react/css/variables.css'
+```javascript
+// 在你的主入口文件引入 CSS 变量
+import '@wisburg/design-tokens-css/css/variables.css'
 
-// 方式2：JavaScript 对象
-import { tokens } from '@wisburg/design-tokens-react'
+// 可选：使用 JavaScript 对象
+import { tokens } from '@wisburg/design-tokens-css'
 
-// 方式3：TypeScript 类型
-import type { DesignTokens } from '@wisburg/design-tokens-react'
+// 可选：TypeScript 类型
+import type { DesignTokens } from '@wisburg/design-tokens-css'
 ```
 
-```tsx
-// 使用示例
-const Button = styled.button`
-  background: var(--color-primary);
-  padding: var(--spacing-md);
-  
-  &:hover {
-    background: var(--color-primary-hover);
+```css
+/* 使用 CSS 变量 */
+.button {
+  background: var(--color-primary-500);
+  padding: var(--spacing-4);
+  border-radius: var(--radius-md);
+}
+
+/* 响应暗色模式 */
+@media (prefers-color-scheme: dark) {
+  .button {
+    background: var(--color-primary-400);
   }
-`
-
-// 或使用 JS 对象
-<div style={{ 
-  color: tokens.colors.text.primary,
-  padding: tokens.spacing.md 
-}}>
+}
 ```
+
+```javascript
+// 或在 JS 中使用
+const styles = {
+  color: tokens.colors.text.primary,
+  padding: tokens.spacing.md
+}
 
 ## 🔄 工作流程
 
@@ -217,11 +222,11 @@ design-tokens/
 │   ├── transform.js     # Token 转换主逻辑
 │   ├── build-flutter.js # Flutter 构建脚本
 │   ├── build-tailwind.js # Tailwind 构建脚本
-│   └── build-react.js   # React 构建脚本
+│   └── build-css.js     # CSS/Web 构建脚本
 ├── packages/
 │   ├── flutter/         # Flutter 包
 │   ├── tailwind/        # Tailwind 配置包
-│   └── react/           # React/Next.js 包
+│   └── css/             # CSS 变量包
 ├── examples/            # 各平台使用示例
 ├── docs/                # 详细文档
 └── .github/

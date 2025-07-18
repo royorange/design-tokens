@@ -21,12 +21,12 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
@@ -43,20 +43,20 @@ jobs:
       - name: Build Tailwind package
         run: npm run build:tailwind
       
-      - name: Build React package
-        run: npm run build:react
+      - name: Build CSS package
+        run: npm run build:css
       
       - name: Run tests
         run: npm test || true
       
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: built-packages
           path: |
             packages/flutter/
             packages/tailwind/
-            packages/react/
+            packages/css/
             tokens/transformed/
       
       # 可选：提交生成的文件到仓库
@@ -76,16 +76,16 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
           registry-url: 'https://registry.npmjs.org'
       
       - name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: built-packages
           path: .
@@ -98,9 +98,9 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       
-      - name: Publish React package
+      - name: Publish CSS package
         run: |
-          cd packages/react
+          cd packages/css
           npm publish --access public || true
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -113,10 +113,10 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
       - name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: built-packages
           path: .
@@ -141,7 +141,7 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
       - name: Check and update version
         id: version
@@ -171,7 +171,7 @@ jobs:
             ### Packages
             - Flutter: `design_tokens` v${{ steps.version.outputs.VERSION }}
             - Tailwind: `@wisburg/design-tokens-tailwind` v${{ steps.version.outputs.VERSION }}
-            - React: `@wisburg/design-tokens-react` v${{ steps.version.outputs.VERSION }}
+            - CSS/Web: `@wisburg/design-tokens-css` v${{ steps.version.outputs.VERSION }}
             
             ### Changes
             See commit history for detailed changes.

@@ -3,12 +3,13 @@ const path = require('path');
 const _ = require('lodash');
 
 /**
- * React/Next.js 构建脚本
+ * CSS/Web 构建脚本
  * 生成 CSS 变量、JavaScript 对象和 TypeScript 定义
+ * 适用于所有 Web 项目（React、Vue、原生 JS 等）
  */
 
 const TOKENS_PATH = path.join(__dirname, '../tokens/transformed/tokens.json');
-const OUTPUT_PATH = path.join(__dirname, '../packages/react');
+const OUTPUT_PATH = path.join(__dirname, '../packages/css');
 const CSS_PATH = path.join(OUTPUT_PATH, 'css');
 
 // 确保输出目录存在
@@ -310,9 +311,9 @@ export default tokens;
 /**
  * 主构建函数
  */
-async function buildReact() {
+async function buildCSS() {
   try {
-    console.log('🔄 Building React package...');
+    console.log('🔄 Building CSS/Web package...');
     
     // 读取 tokens
     const tokens = await fs.readJSON(TOKENS_PATH);
@@ -349,9 +350,9 @@ async function buildReact() {
     
     // 创建 package.json
     const packageJson = {
-      name: '@wisburg/design-tokens-react',
+      name: '@wisburg/design-tokens-css',
       version: '1.0.0',
-      description: 'Design tokens for React applications',
+      description: 'Design tokens CSS variables and utilities for web applications',
       main: 'index.js',
       module: 'index.mjs',
       types: 'index.d.ts',
@@ -364,10 +365,7 @@ async function buildReact() {
         './css/variables.css': './css/variables.css',
         './tokens.json': './tokens.json'
       },
-      sideEffects: false,
-      peerDependencies: {
-        'react': '>=16.8.0'
-      }
+      sideEffects: ["./css/variables.css"]
     };
     
     await fs.writeJSON(
@@ -377,13 +375,13 @@ async function buildReact() {
     );
     
     // 创建使用示例
-    const exampleContent = `// Example usage in React/Next.js
+    const exampleContent = `// Example usage in Web projects
 
-// 1. Import CSS variables (in _app.tsx or layout.tsx)
-import '@wisburg/design-tokens-react/css/variables.css';
+// 1. Import CSS variables (in your main CSS/JS file)
+import '@wisburg/design-tokens-css/css/variables.css';
 
 // 2. Use tokens in JavaScript
-import { tokens, useTheme, getCssVar } from '@wisburg/design-tokens-react';
+import { tokens, useTheme, getCssVar } from '@wisburg/design-tokens-css';
 
 // Component example
 export function Button({ variant = 'primary' }) {
@@ -440,17 +438,17 @@ const StyledButton = styled.button\`
       exampleContent
     );
     
-    console.log('✅ React package built successfully');
+    console.log('✅ CSS/Web package built successfully');
     
   } catch (error) {
-    console.error('❌ React build failed:', error);
+    console.error('❌ CSS build failed:', error);
     process.exit(1);
   }
 }
 
 // 如果直接运行此脚本
 if (require.main === module) {
-  buildReact();
+  buildCSS();
 }
 
-module.exports = { buildReact };
+module.exports = { buildCSS };

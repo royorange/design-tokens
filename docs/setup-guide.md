@@ -168,9 +168,9 @@ dependencies:
       # ref: 7c3d5f2  # 或者：锁定到特定 commit
 ```
 
-**React/Next.js:**
+**CSS/Web (React/Vue/Next.js/Nuxt):**
 ```bash
-npm install @wisburg/design-tokens-react
+npm install @wisburg/design-tokens-css
 # 或从 GitHub 安装（私有仓库）
 npm install github:wisburg/design-tokens#main
 ```

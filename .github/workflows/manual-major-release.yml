@@ -18,13 +18,13 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
@@ -79,7 +79,7 @@ jobs:
             ## 📦 Packages
             - Flutter: `design_tokens` v${{ steps.version.outputs.VERSION }}
             - Tailwind: `@wisburg/design-tokens-tailwind` v${{ steps.version.outputs.VERSION }}
-            - React: `@wisburg/design-tokens-react` v${{ steps.version.outputs.VERSION }}
+            - CSS/Web: `@wisburg/design-tokens-css` v${{ steps.version.outputs.VERSION }}
             
             ---
             ⚠️ **Important**: This is a major release with breaking changes. Please review the migration guide before updating.
