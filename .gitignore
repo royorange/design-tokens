@@ -12,12 +12,13 @@ tokens/transformed/
 tokens/platforms/
 
 # Package outputs
-packages/*/lib/
 packages/*/dist/
 packages/*/*.d.ts
 packages/*/*.js
 packages/*/*.mjs
 packages/*/css/
+# Flutter lib 目录需要提交，因为通过 Git 引用
+!packages/flutter/lib/
 
 # Testing
 coverage/

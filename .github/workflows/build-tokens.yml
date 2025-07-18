@@ -15,6 +15,10 @@ on:
       - 'package.json'
   workflow_dispatch:
 
+permissions:
+  contents: write
+  packages: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -63,14 +67,14 @@ jobs:
             packages/css/
             tokens/transformed/
       
-      # 可选：提交生成的文件到仓库
-      - name: Commit generated files
+      # 只提交 Flutter 包的生成文件（因为 Flutter 通过 Git 引用）
+      - name: Commit Flutter package files
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add -A
-          git diff --staged --quiet || git commit -m "chore: update generated design tokens [skip ci]"
+          git add packages/flutter/lib/
+          git diff --staged --quiet || git commit -m "chore: update Flutter design tokens [skip ci]"
           git push
       
   publish-npm:
