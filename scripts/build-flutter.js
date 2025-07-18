@@ -114,10 +114,10 @@ function generateColorSchemes(semantic, primitive) {
   code += `    onSecondary: AppColors.white,\n`;
   code += `    secondaryContainer: AppColors.primary100,\n`;
   code += `    onSecondaryContainer: AppColors.primary900,\n`;
-  code += `    error: const Color(0xFFDC2626),\n`;
+  code += `    error: AppColors.error600,\n`;
   code += `    onError: AppColors.white,\n`;
-  code += `    errorContainer: const Color(0xFFFFEBEE),\n`;
-  code += `    onErrorContainer: const Color(0xFF7F1D1D),\n`;
+  code += `    errorContainer: AppColors.error50,\n`;
+  code += `    onErrorContainer: AppColors.error900,\n`;
   code += `    surface: AppColors.white,\n`;
   code += `    onSurface: AppColors.neutral900,\n`;
   code += `    surfaceContainerHighest: AppColors.neutral100,\n`;
@@ -142,10 +142,10 @@ function generateColorSchemes(semantic, primitive) {
   code += `    onSecondary: AppColors.primary900,\n`;
   code += `    secondaryContainer: AppColors.primary700,\n`;
   code += `    onSecondaryContainer: AppColors.primary100,\n`;
-  code += `    error: const Color(0xFFEF4444),\n`;
+  code += `    error: AppColors.error500,\n`;
   code += `    onError: AppColors.white,\n`;
-  code += `    errorContainer: const Color(0xFF991B1B),\n`;
-  code += `    onErrorContainer: const Color(0xFFFECACA),\n`;
+  code += `    errorContainer: AppColors.error800,\n`;
+  code += `    onErrorContainer: AppColors.error200,\n`;
   code += `    surface: AppColors.neutral900,\n`;
   code += `    onSurface: AppColors.neutral100,\n`;
   code += `    surfaceContainerHighest: AppColors.neutral800,\n`;
@@ -169,148 +169,21 @@ function generateColorSchemes(semantic, primitive) {
 function generateDesignTokensClass(tokens) {
   let code = '\n/// Design Tokens 直接访问\n';
   code += 'class DesignTokens {\n';
+  code += '  // Private constructor to prevent instantiation\n';
+  code += '  DesignTokens._();\n\n';
   
-  // 颜色
-  code += '  static const colors = _ColorTokens();\n';
-  code += '  static const spacing = _SpacingTokens();\n';
-  code += '  static const radius = _RadiusTokens();\n';
-  
-  // Themes
-  code += '\n  // Generated themes\n';
-  code += '  static ThemeData lightTheme = _generateLightTheme();\n';
-  code += '  static ThemeData darkTheme = _generateDarkTheme();\n';
-  
-  code += '}\n\n';
-  
-  // Color Tokens
-  code += 'class _ColorTokens {\n';
-  code += '  const _ColorTokens();\n\n';
-  
-  // Primitive colors
-  code += '  // Primary colors\n';
-  code += '  Color get primary => AppColors.primary500;\n';
-  code += '  Color get primaryLight => AppColors.primary400;\n';
-  code += '  Color get primaryDark => AppColors.primary600;\n';
-  
-  // Semantic colors
-  if (tokens.semantic.light.color) {
-    code += '\n  // Semantic colors (light mode defaults)\n';
-    const semanticColors = tokens.semantic.light.color;
-    if (semanticColors.text) {
-      code += '  Color get textPrimary => AppColors.neutral900;\n';
-      code += '  Color get textSecondary => AppColors.neutral700;\n';
-    }
-    if (semanticColors.background) {
-      code += '  Color get backgroundBase => AppColors.white;\n';
-      code += '  Color get backgroundElevated => AppColors.neutral50;\n';
-    }
-  }
-  
-  code += '}\n\n';
-  
-  // Spacing Tokens
-  code += 'class _SpacingTokens {\n';
-  code += '  const _SpacingTokens();\n\n';
-  
-  if (tokens.primitive.spacing) {
-    Object.entries(tokens.primitive.spacing).forEach(([key, config]) => {
-      const value = parseInt(config.value);
-      code += `  double get s${key} => ${value}.0;\n`;
-    });
-    
-    // 添加语义化命名
-    code += '\n  // Semantic spacing\n';
-    code += '  double get xs => AppSpacing.spacing1;\n';
-    code += '  double get sm => AppSpacing.spacing2;\n';
-    code += '  double get md => AppSpacing.spacing4;\n';
-    code += '  double get lg => AppSpacing.spacing6;\n';
-    code += '  double get xl => AppSpacing.spacing8;\n';
-  }
-  
-  code += '}\n\n';
-  
-  // Radius Tokens
-  code += 'class _RadiusTokens {\n';
-  code += '  const _RadiusTokens();\n\n';
-  
-  if (tokens.primitive.radius) {
-    Object.entries(tokens.primitive.radius).forEach(([key, config]) => {
-      const value = parseInt(config.value);
-      code += `  double get ${key} => ${value}.0;\n`;
-    });
-  }
+  code += '  // Token collections\n';
+  code += '  static const colors = AppColors;\n';
+  code += '  static const spacing = AppSpacing;\n';
+  code += '  static const radius = AppRadius;\n';
+  code += '  static const fontSize = AppFontSizes;\n';
+  code += '  static const colorSchemes = AppColorSchemes;\n';
   
   code += '}\n';
   
   return code;
 }
 
-/**
- * 生成主题定义
- */
-function generateThemeDefinitions() {
-  let code = '\n// Theme definitions\n';
-  
-  // Light theme
-  code += 'ThemeData _generateLightTheme() {\n';
-  code += '  return ThemeData(\n';
-  code += '    useMaterial3: true,\n';
-  code += '    brightness: Brightness.light,\n';
-  code += '    colorScheme: AppColorSchemes.lightColorScheme,\n';
-  code += '    scaffoldBackgroundColor: AppColors.neutral50,\n';
-  code += '    appBarTheme: const AppBarTheme(\n';
-  code += '      centerTitle: true,\n';
-  code += '      elevation: 0,\n';
-  code += '      backgroundColor: AppColors.white,\n';
-  code += '      foregroundColor: AppColors.neutral900,\n';
-  code += '    ),\n';
-  code += '    elevatedButtonTheme: ElevatedButtonThemeData(\n';
-  code += '      style: ElevatedButton.styleFrom(\n';
-  code += '        foregroundColor: AppColors.white,\n';
-  code += '        backgroundColor: AppColors.primary500,\n';
-  code += '        shape: RoundedRectangleBorder(\n';
-  code += '          borderRadius: BorderRadius.circular(AppRadius.md),\n';
-  code += '        ),\n';
-  code += '        padding: const EdgeInsets.symmetric(\n';
-  code += '          horizontal: AppSpacing.spacing4,\n';
-  code += '          vertical: AppSpacing.spacing3,\n';
-  code += '        ),\n';
-  code += '      ),\n';
-  code += '    ),\n';
-  code += '  );\n';
-  code += '}\n\n';
-  
-  // Dark theme
-  code += 'ThemeData _generateDarkTheme() {\n';
-  code += '  return ThemeData(\n';
-  code += '    useMaterial3: true,\n';
-  code += '    brightness: Brightness.dark,\n';
-  code += '    colorScheme: AppColorSchemes.darkColorScheme,\n';
-  code += '    scaffoldBackgroundColor: AppColors.neutral900,\n';
-  code += '    appBarTheme: const AppBarTheme(\n';
-  code += '      centerTitle: true,\n';
-  code += '      elevation: 0,\n';
-  code += '      backgroundColor: AppColors.neutral900,\n';
-  code += '      foregroundColor: AppColors.white,\n';
-  code += '    ),\n';
-  code += '    elevatedButtonTheme: ElevatedButtonThemeData(\n';
-  code += '      style: ElevatedButton.styleFrom(\n';
-  code += '        foregroundColor: AppColors.white,\n';
-  code += '        backgroundColor: AppColors.primary500,\n';
-  code += '        shape: RoundedRectangleBorder(\n';
-  code += '          borderRadius: BorderRadius.circular(AppRadius.md),\n';
-  code += '        ),\n';
-  code += '        padding: const EdgeInsets.symmetric(\n';
-  code += '          horizontal: AppSpacing.spacing4,\n';
-  code += '          vertical: AppSpacing.spacing3,\n';
-  code += '        ),\n';
-  code += '      ),\n';
-  code += '    ),\n';
-  code += '  );\n';
-  code += '}\n';
-  
-  return code;
-}
 
 /**
  * 主构建函数
@@ -344,9 +217,6 @@ async function buildFlutter() {
     
     // 生成 DesignTokens 类
     dartCode += generateDesignTokensClass(tokens);
-    
-    // 生成主题定义
-    dartCode += generateThemeDefinitions();
     
     // 写入文件
     await fs.writeFile(

@@ -11,31 +11,81 @@ dependencies:
 
 ## Usage
 
+### Basic Usage
+
 ```dart
 import 'package:wisburg_design_tokens/design_tokens.dart';
 
-// Use with Material 3
-MaterialApp(
-  theme: ThemeData(
-    useMaterial3: true,
-    colorScheme: AppColorSchemes.lightColorScheme,
-  ),
-  darkTheme: ThemeData(
-    useMaterial3: true,
-    colorScheme: AppColorSchemes.darkColorScheme,
-  ),
-  // ... rest of your app
-);
-
-// Access colors directly
+// Access tokens directly
 Container(
   color: AppColors.primary500,
   padding: EdgeInsets.all(AppSpacing.spacing4),
   child: Text(
     'Hello',
-    style: TextStyle(fontSize: AppFontSizes.base),
+    style: TextStyle(
+      fontSize: AppFontSizes.base,
+      color: AppColors.white,
+    ),
+  ),
+  decoration: BoxDecoration(
+    borderRadius: BorderRadius.circular(AppRadius.md),
   ),
 );
+```
+
+### Using with Material Theme
+
+The package provides basic ColorSchemes, but you should create your own complete theme:
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:wisburg_design_tokens/design_tokens.dart';
+
+class AppTheme {
+  static ThemeData lightTheme = ThemeData(
+    useMaterial3: true,
+    colorScheme: AppColorSchemes.lightColorScheme,
+    
+    // Customize components using design tokens
+    appBarTheme: AppBarTheme(
+      backgroundColor: AppColors.white,
+      foregroundColor: AppColors.neutral900,
+      elevation: 0,
+    ),
+    
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.primary500,
+        foregroundColor: AppColors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        padding: EdgeInsets.symmetric(
+          horizontal: AppSpacing.spacing4,
+          vertical: AppSpacing.spacing3,
+        ),
+      ),
+    ),
+    
+    // ... other component themes
+  );
+}
+
+// Use in your app
+MaterialApp(
+  theme: AppTheme.lightTheme,
+  darkTheme: AppTheme.darkTheme,
+  // ...
+);
+```
+
+### Using through DesignTokens class
+
+```dart
+// All tokens are also accessible through the DesignTokens class
+final primaryColor = DesignTokens.colors.primary500;
+final buttonPadding = DesignTokens.spacing.spacing4;
+final borderRadius = DesignTokens.radius.md;
 ```
 
 ## Available Tokens
