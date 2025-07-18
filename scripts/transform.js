@@ -70,12 +70,10 @@ function generateStandardTokens(resolved) {
   };
 
   // 提取原始值
-  if (resolved.global) {
-    standard.primitive.color = resolved.global.color || {};
-    standard.primitive.spacing = resolved.global.spacing || {};
-    standard.primitive.radius = resolved.global.radius || {};
-    standard.primitive.fontSize = resolved.global.fontSize || {};
-  }
+  standard.primitive.color = resolved.color || {};
+  standard.primitive.spacing = resolved.spacing || {};
+  standard.primitive.radius = resolved.radius || {};
+  standard.primitive.fontSize = resolved.fontSize || {};
 
   // 提取语义化 tokens
   ['light', 'dark'].forEach(theme => {
@@ -135,6 +133,12 @@ async function main() {
     // 2. 转换格式
     const resolved = await transformToStandardFormat(rawTokens);
     console.log('✅ References resolved');
+    
+    // 调试：查看 resolved 结构
+    console.log('Resolved structure:', Object.keys(resolved));
+    if (resolved.global) {
+      console.log('Global keys:', Object.keys(resolved.global));
+    }
     
     // 3. 生成标准格式
     const standardTokens = generateStandardTokens(resolved);

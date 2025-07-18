@@ -79,7 +79,7 @@ jobs:
             ${{ github.event.inputs.migration_notes }}
             
             ## 📦 Packages
-            - Flutter: `design_tokens` v${{ steps.version.outputs.VERSION }}
+            - Flutter: `wisburg_design_tokens` v${{ steps.version.outputs.VERSION }}
             - Tailwind: `@wisburg/design-tokens-tailwind` v${{ steps.version.outputs.VERSION }}
             - CSS/Web: `@wisburg/design-tokens-css` v${{ steps.version.outputs.VERSION }}
             

@@ -118,8 +118,8 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
   
-  # Flutter 包通过 Git tag 发布
-  tag-flutter:
+  # Flutter 包发布到 pub.dev
+  publish-flutter:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
@@ -134,21 +134,24 @@ jobs:
           name: built-packages
           path: .
       
-      # 创建 Git tag 供 Flutter 项目引用
-      - name: Create Flutter package tag
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.16.0'
+      
+      - name: Setup pub credentials
         run: |
-          VERSION=$(node -p "require('./package.json').version")
-          echo "Flutter package is available via Git dependency"
-          echo "Add to pubspec.yaml:"
-          echo "  design_tokens:"
-          echo "    git:"
-          echo "      url: https://github.com/${{ github.repository }}.git"
-          echo "      path: packages/flutter"
-          echo "      ref: v${VERSION}"
+          mkdir -p ~/.config/dart
+          echo '${{ secrets.PUB_CREDENTIALS }}' > ~/.config/dart/pub-credentials.json
+      
+      - name: Publish to pub.dev
+        run: |
+          cd packages/flutter
+          flutter pub publish --force || true
   
   # 创建 Release
   create-release:
-    needs: [build, publish-npm, tag-flutter]
+    needs: [build, publish-npm, publish-flutter]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     
@@ -193,7 +196,7 @@ jobs:
             This release includes updated design tokens from Figma.
             
             ### Packages
-            - Flutter: `design_tokens` v${{ steps.version.outputs.VERSION }}
+            - Flutter: `wisburg_design_tokens` v${{ steps.version.outputs.VERSION }}
             - Tailwind: `@wisburg/design-tokens-tailwind` v${{ steps.version.outputs.VERSION }}
             - CSS/Web: `@wisburg/design-tokens-css` v${{ steps.version.outputs.VERSION }}
             
@@ -206,4 +209,4 @@ jobs:
         run: |
           echo "::notice title=新版本发布::Design Tokens 已更新到 v${{ steps.version.outputs.VERSION }}"
           echo "Flutter 项目请更新 pubspec.yaml："
-          echo "  ref: v${{ steps.version.outputs.VERSION }}"
+          echo "  wisburg_design_tokens: ^${{ steps.version.outputs.VERSION }}"

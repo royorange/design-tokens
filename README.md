@@ -89,17 +89,12 @@ pnpm run build:css
 ```yaml
 # pubspec.yaml
 dependencies:
-  design_tokens:
-    git:
-      url: https://github.com/wisburg/design-tokens.git
-      path: packages/flutter
-      ref: v1.0.0  # 使用特定版本标签
-      # ref: main  # 或使用最新的 main 分支
+  wisburg_design_tokens: ^1.0.0
 ```
 
 ```dart
 // 使用方式
-import 'package:design_tokens/design_tokens.dart';
+import 'package:wisburg_design_tokens/design_tokens.dart';
 
 // 1. 应用主题
 MaterialApp(
