@@ -1,0 +1,62 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Production
+dist/
+build/
+
+# Generated files
+tokens/transformed/
+tokens/platforms/
+
+# Package outputs
+packages/*/lib/
+packages/*/dist/
+packages/*/*.d.ts
+packages/*/*.js
+packages/*/*.mjs
+packages/*/css/
+
+# Testing
+coverage/
+.nyc_output/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Flutter
+packages/flutter/.dart_tool/
+packages/flutter/.packages
+packages/flutter/.flutter-plugins
+packages/flutter/.flutter-plugins-dependencies
+packages/flutter/pubspec.lock
+packages/flutter/build/
+
+# Misc
+.cache/
+.temp/
+*.tmp
+
+# Version state (不要提交版本状态文件)
+.version-state.json

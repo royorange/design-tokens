@@ -1,0 +1,93 @@
+name: Manual Major Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: '破坏性变更的原因'
+        required: true
+        type: string
+      migration_notes:
+        description: '迁移指南'
+        required: false
+        type: string
+
+jobs:
+  major-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm install
+      
+      - name: Update to major version
+        id: version
+        run: |
+          # 更新到 major 版本
+          npm run version:major
+          
+          # 获取新版本号
+          VERSION=$(node -p "require('./package.json').version")
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          
+          # 提交版本更新
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add -A
+          git commit -m "chore: bump major version to v$VERSION
+
+          Reason: ${{ github.event.inputs.reason }}
+          
+          BREAKING CHANGE: ${{ github.event.inputs.reason }}
+          
+          Migration Guide:
+          ${{ github.event.inputs.migration_notes }}"
+          
+          git push
+      
+      - name: Build all packages
+        run: npm run build
+      
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.version.outputs.VERSION }}
+          release_name: v${{ steps.version.outputs.VERSION }} - Breaking Changes
+          body: |
+            ## ⚠️ Breaking Changes
+            
+            ${{ github.event.inputs.reason }}
+            
+            ## 📋 Migration Guide
+            
+            ${{ github.event.inputs.migration_notes }}
+            
+            ## 📦 Packages
+            - Flutter: `design_tokens` v${{ steps.version.outputs.VERSION }}
+            - Tailwind: `@wisburg/design-tokens-tailwind` v${{ steps.version.outputs.VERSION }}
+            - React: `@wisburg/design-tokens-react` v${{ steps.version.outputs.VERSION }}
+            
+            ---
+            ⚠️ **Important**: This is a major release with breaking changes. Please review the migration guide before updating.
+          draft: false
+          prerelease: false
+      
+      - name: Notify team
+        run: |
+          echo "🚨 Major version ${{ steps.version.outputs.VERSION }} released!"
+          echo "Reason: ${{ github.event.inputs.reason }}"
+          # 这里可以添加 Slack、邮件等通知

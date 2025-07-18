@@ -1,0 +1,44 @@
+{
+  "name": "@wisburg/design-tokens",
+  "version": "1.0.0",
+  "description": "Unified design token system for multiple platforms",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build:transform && npm run build:all",
+    "build:transform": "node scripts/transform.js",
+    "build:all": "npm run build:flutter && npm run build:tailwind && npm run build:react",
+    "build:flutter": "node scripts/build-flutter.js",
+    "build:tailwind": "node scripts/build-tailwind.js",
+    "build:react": "node scripts/build-react.js",
+    "test": "npm run test:tokens && npm run test:outputs",
+    "test:tokens": "node scripts/validate-tokens.js",
+    "test:outputs": "npm run test:flutter && npm run test:tailwind && npm run test:react",
+    "test:flutter": "cd packages/flutter && flutter test",
+    "test:tailwind": "cd packages/tailwind && npm test",
+    "test:react": "cd packages/react && npm test",
+    "watch": "nodemon -w tokens/figma -x npm run build",
+    "clean": "rimraf tokens/transformed tokens/platforms packages/*/dist",
+    "version": "node scripts/version-manager.js",
+    "version:patch": "node scripts/version-manager.js patch",
+    "version:minor": "node scripts/version-manager.js minor",
+    "version:major": "node scripts/version-manager.js major",
+    "version:auto": "node scripts/version-manager.js auto",
+    "version:check": "node scripts/version-manager.js check"
+  },
+  "devDependencies": {
+    "style-dictionary": "^3.9.0",
+    "token-transformer": "^0.0.33",
+    "nodemon": "^3.0.1",
+    "rimraf": "^5.0.1",
+    "fs-extra": "^11.1.1",
+    "lodash": "^4.17.21",
+    "@types/node": "^20.0.0",
+    "semver": "^7.5.4"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

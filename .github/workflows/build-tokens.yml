@@ -1,0 +1,179 @@
+name: Build and Publish Design Tokens
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'tokens/figma/**'
+      - 'scripts/**'
+      - 'package.json'
+  pull_request:
+    paths:
+      - 'tokens/figma/**'
+      - 'scripts/**'
+      - 'package.json'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm install
+      
+      - name: Transform tokens
+        run: npm run build:transform
+      
+      - name: Build Flutter package
+        run: npm run build:flutter
+      
+      - name: Build Tailwind package
+        run: npm run build:tailwind
+      
+      - name: Build React package
+        run: npm run build:react
+      
+      - name: Run tests
+        run: npm test || true
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: built-packages
+          path: |
+            packages/flutter/
+            packages/tailwind/
+            packages/react/
+            tokens/transformed/
+      
+      # 可选：提交生成的文件到仓库
+      - name: Commit generated files
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add -A
+          git diff --staged --quiet || git commit -m "chore: update generated design tokens [skip ci]"
+          git push
+      
+  publish-npm:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+      
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: built-packages
+          path: .
+      
+      # 发布到 NPM (需要配置 NPM_TOKEN)
+      - name: Publish Tailwind package
+        run: |
+          cd packages/tailwind
+          npm publish --access public || true
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      
+      - name: Publish React package
+        run: |
+          cd packages/react
+          npm publish --access public || true
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+  
+  # Flutter 包通过 Git tag 发布
+  tag-flutter:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: built-packages
+          path: .
+      
+      # 创建 Git tag 供 Flutter 项目引用
+      - name: Create Flutter package tag
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "Flutter package is available via Git dependency"
+          echo "Add to pubspec.yaml:"
+          echo "  design_tokens:"
+          echo "    git:"
+          echo "      url: https://github.com/${{ github.repository }}.git"
+          echo "      path: packages/flutter"
+          echo "      ref: v${VERSION}"
+  
+  # 创建 Release
+  create-release:
+    needs: [build, publish-npm, tag-flutter]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Check and update version
+        id: version
+        run: |
+          # 自动检查并更新版本号
+          npm run version:auto
+          # 获取更新后的版本号
+          echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+          # 提交版本号更新
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add -A
+          git diff --staged --quiet || git commit -m "chore: bump version to v$(node -p "require('./package.json').version") [skip ci]"
+      
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.version.outputs.VERSION }}
+          release_name: Release v${{ steps.version.outputs.VERSION }}
+          body: |
+            ## Design Tokens Update
+            
+            This release includes updated design tokens from Figma.
+            
+            ### Packages
+            - Flutter: `design_tokens` v${{ steps.version.outputs.VERSION }}
+            - Tailwind: `@wisburg/design-tokens-tailwind` v${{ steps.version.outputs.VERSION }}
+            - React: `@wisburg/design-tokens-react` v${{ steps.version.outputs.VERSION }}
+            
+            ### Changes
+            See commit history for detailed changes.
+          draft: false
+          prerelease: false
