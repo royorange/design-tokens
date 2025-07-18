@@ -145,13 +145,13 @@ git clone https://github.com/your-org/design-tokens.git
 cd design-tokens
 
 # 安装依赖
-npm install
+pnpm install
 
 # 构建 tokens
-npm run build
+pnpm run build
 
 # 监听变化
-npm run watch
+pnpm run watch
 ```
 
 ### 在项目中使用
@@ -170,9 +170,9 @@ dependencies:
 
 **CSS/Web (React/Vue/Next.js/Nuxt):**
 ```bash
-npm install @wisburg/design-tokens-css
+pnpm install @wisburg/design-tokens-css
 # 或从 GitHub 安装（私有仓库）
-npm install github:wisburg/design-tokens#main
+pnpm install github:wisburg/design-tokens#main
 ```
 
 **Tailwind:**
@@ -220,7 +220,7 @@ const tokens = require('design-tokens/packages/tailwind');
 ### 构建失败
 
 1. 检查 token 格式是否正确
-2. 运行 `npm run test:tokens` 验证
+2. 运行 `pnpm run test:tokens` 验证
 3. 查看 CI/CD 日志
 
 ### 样式不生效

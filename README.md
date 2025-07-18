@@ -63,7 +63,7 @@ component.button.padding.x // 按钮水平内边距
 ### 1. 安装依赖
 
 ```bash
-npm install
+ppnpm add
 ```
 
 ### 2. 配置 Tokens Studio
@@ -74,12 +74,12 @@ npm install
 
 ```bash
 # 构建所有平台
-npm run build
+pnpm run build
 
 # 构建特定平台
-npm run build:flutter
-npm run build:tailwind
-npm run build:css
+pnpm run build:flutter
+pnpm run build:tailwind
+pnpm run build:css
 ```
 
 ## 📦 平台集成
@@ -120,7 +120,7 @@ final colorScheme = Theme.of(context).colorScheme;
 ### Tailwind CSS 集成
 
 ```bash
-npm install @wisburg/design-tokens-tailwind
+pnpm add @wisburg/design-tokens-tailwind
 ```
 
 ```javascript
@@ -152,7 +152,7 @@ module.exports = {
 ### CSS 变量集成（React/Vue/原生 JS）
 
 ```bash
-npm install @wisburg/design-tokens-css
+pnpm add @wisburg/design-tokens-css
 ```
 
 ```javascript
@@ -239,7 +239,7 @@ design-tokens/
 
 1. 在 Figma 中通过 Tokens Studio 添加
 2. 同步到代码仓库
-3. 运行 `npm run build` 验证
+3. 运行 `pnpm run build` 验证
 4. 提交 PR
 
 ### 自定义转换规则
@@ -263,8 +263,8 @@ const colorMapping = {
 npm test
 
 # 测试特定平台
-npm run test:flutter
-npm run test:tailwind
+pnpm run test:flutter
+pnpm run test:tailwind
 ```
 
 ## 🤝 贡献指南

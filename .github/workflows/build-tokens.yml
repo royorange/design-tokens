@@ -29,22 +29,26 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
       
       - name: Install dependencies
-        run: npm install
+        run: pnpm install
       
       - name: Transform tokens
-        run: npm run build:transform
+        run: pnpm run build:transform
       
       - name: Build Flutter package
-        run: npm run build:flutter
+        run: pnpm run build:flutter
       
       - name: Build Tailwind package
-        run: npm run build:tailwind
+        run: pnpm run build:tailwind
       
       - name: Build CSS package
-        run: npm run build:css
+        run: pnpm run build:css
       
       - name: Run tests
         run: npm test || true
@@ -94,14 +98,14 @@ jobs:
       - name: Publish Tailwind package
         run: |
           cd packages/tailwind
-          npm publish --access public || true
+          pnpm publish --access public --no-git-checks || true
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       
       - name: Publish CSS package
         run: |
           cd packages/css
-          npm publish --access public || true
+          pnpm publish --access public --no-git-checks || true
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
   
@@ -147,7 +151,7 @@ jobs:
         id: version
         run: |
           # 自动检查并更新版本号
-          npm run version:auto
+          pnpm run version:auto
           # 获取更新后的版本号
           echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
           # 提交版本号更新
@@ -177,3 +181,9 @@ jobs:
             See commit history for detailed changes.
           draft: false
           prerelease: false
+      
+      - name: Output version info
+        run: |
+          echo "::notice title=新版本发布::Design Tokens 已更新到 v${{ steps.version.outputs.VERSION }}"
+          echo "Flutter 项目请更新 pubspec.yaml："
+          echo "  ref: v${{ steps.version.outputs.VERSION }}"

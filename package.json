@@ -3,23 +3,20 @@
   "version": "1.0.0",
   "description": "Unified design token system for multiple platforms",
   "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
   "scripts": {
-    "build": "npm run build:transform && npm run build:all",
+    "build": "pnpm run build:transform && pnpm run build:all",
     "build:transform": "node scripts/transform.js",
-    "build:all": "npm run build:flutter && npm run build:tailwind && npm run build:css",
+    "build:all": "pnpm run build:flutter && pnpm run build:tailwind && pnpm run build:css",
     "build:flutter": "node scripts/build-flutter.js",
     "build:tailwind": "node scripts/build-tailwind.js",
     "build:css": "node scripts/build-css.js",
-    "test": "npm run test:tokens && npm run test:outputs",
+    "test": "pnpm run test:tokens && pnpm run test:outputs",
     "test:tokens": "node scripts/validate-tokens.js",
-    "test:outputs": "npm run test:flutter && npm run test:tailwind && npm run test:css",
+    "test:outputs": "pnpm run test:flutter && pnpm run test:tailwind && pnpm run test:css",
     "test:flutter": "cd packages/flutter && flutter test",
     "test:tailwind": "cd packages/tailwind && npm test",
     "test:css": "cd packages/css && npm test",
-    "watch": "nodemon -w tokens/figma -x npm run build",
+    "watch": "nodemon -w tokens/figma -x pnpm run build",
     "clean": "rimraf tokens/transformed tokens/platforms packages/*/dist",
     "version": "node scripts/version-manager.js",
     "version:patch": "node scripts/version-manager.js patch",
@@ -40,5 +37,6 @@
   },
   "engines": {
     "node": ">=16.0.0"
-  }
+  },
+  "packageManager": "pnpm@8.15.0"
 }

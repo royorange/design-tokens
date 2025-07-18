@@ -212,7 +212,7 @@ async function updateVersion(type = 'patch') {
   await fs.writeJSON(ROOT_PACKAGE, pkg, { spaces: 2 });
   
   // 更新所有子包的版本
-  const packages = ['flutter', 'react', 'tailwind'];
+  const packages = ['flutter', 'css', 'tailwind'];
   for (const pkgName of packages) {
     const pkgPath = path.join(__dirname, `../packages/${pkgName}/package.json`);
     if (await fs.pathExists(pkgPath)) {
