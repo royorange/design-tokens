@@ -9,7 +9,8 @@
       "Bash(npm install:*)",
       "Bash(pnpm run:*)",
       "Bash(grep:*)",
-      "Bash(pnpm add:*)"
+      "Bash(pnpm add:*)",
+      "Bash(npx yaml-lint:*)"
     ],
     "deny": []
   }
