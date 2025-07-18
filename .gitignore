@@ -58,5 +58,5 @@ packages/flutter/build/
 .temp/
 *.tmp
 
-# Version state (不要提交版本状态文件)
-.version-state.json
+# Temp files
+.token-state.json

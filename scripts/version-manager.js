@@ -1,15 +1,16 @@
 const fs = require('fs-extra');
 const path = require('path');
+const crypto = require('crypto');
 const semver = require('semver');
 
 /**
- * 版本管理脚本
- * 自动管理版本号，支持根据 token 变更自动更新版本
+ * 简化的版本管理脚本
+ * 使用 Git 提交的方式跟踪 token hash
  */
 
 const ROOT_PACKAGE = path.join(__dirname, '../package.json');
 const TOKENS_PATH = path.join(__dirname, '../tokens/figma/tokens.json');
-const VERSION_FILE = path.join(__dirname, '../.version-state.json');
+const HASH_FILE = path.join(__dirname, '../tokens/.token-info.json');
 
 /**
  * 获取当前版本
@@ -23,9 +24,10 @@ async function getCurrentVersion() {
  * 计算 tokens 的 hash
  */
 async function getTokensHash() {
-  const crypto = require('crypto');
   const tokensContent = await fs.readFile(TOKENS_PATH, 'utf8');
-  return crypto.createHash('md5').update(tokensContent).digest('hex');
+  // 只计算内容的 hash，忽略格式化差异
+  const normalizedContent = JSON.stringify(JSON.parse(tokensContent));
+  return crypto.createHash('md5').update(normalizedContent).digest('hex');
 }
 
 /**
@@ -33,171 +35,129 @@ async function getTokensHash() {
  */
 async function shouldUpdateVersion() {
   try {
-    const versionState = await fs.readJSON(VERSION_FILE);
     const currentHash = await getTokensHash();
-    return versionState.tokensHash !== currentHash;
+    
+    // 读取上次的信息
+    if (await fs.pathExists(HASH_FILE)) {
+      const tokenInfo = await fs.readJSON(HASH_FILE);
+      return tokenInfo.hash !== currentHash;
+    }
+    
+    // 首次运行
+    return true;
   } catch (error) {
-    // 第一次运行，文件不存在
+    console.error('Error checking version:', error);
     return true;
   }
 }
 
 /**
- * 分析变更类型
- * 智能判断规则：
- * - Major: 删除 token、重命名 token、破坏性变更
- * - Minor: 新增 token、新增 token 类别
- * - Patch: 仅修改现有 token 的值
+ * 简单的变更分析
+ * 由于没有历史快照，只能通过 Git 历史分析
  */
 async function analyzeChangeType() {
+  // 检查是否有 tokens 文件的 git 历史
+  const { execSync } = require('child_process');
+  
   try {
-    const versionState = await fs.readJSON(VERSION_FILE);
-    const oldTokens = versionState.tokensSnapshot || {};
+    // 获取上次提交的 tokens 内容
+    const lastTokens = execSync(
+      `git show HEAD:tokens/figma/tokens.json 2>/dev/null`,
+      { encoding: 'utf8' }
+    );
+    
+    const oldTokens = JSON.parse(lastTokens);
     const newTokens = await fs.readJSON(TOKENS_PATH);
     
-    // 深度分析变更
-    const changes = analyzeTokenChanges(oldTokens, newTokens);
+    // 简单对比
+    const oldKeys = Object.keys(JSON.flatten(oldTokens)).sort();
+    const newKeys = Object.keys(JSON.flatten(newTokens)).sort();
     
-    // 判断版本类型
-    if (changes.deletions.length > 0 || changes.renames.length > 0) {
-      console.log('⚠️  检测到可能的破坏性变更 (删除或重命名)');
-      console.log('📌 建议手动运行 `npm run version:major` 如果这是有意的破坏性变更');
-      console.log('📌 否则将作为 minor 版本处理');
-      // 自动模式下，破坏性变更降级为 minor，需要手动确认 major
-      return 'minor';
-    } else if (changes.additions.length > 0) {
-      console.log('🟡 检测到新增 token');
-      return 'minor';
-    } else if (changes.modifications.length > 0) {
-      console.log('🟢 检测到值修改');
-      return 'patch';
+    // 有删除的 key
+    const deletedKeys = oldKeys.filter(k => !newKeys.includes(k));
+    if (deletedKeys.length > 0) {
+      console.log('⚠️  检测到删除的 tokens，建议手动设置 major 版本');
+      return 'minor'; // 安全起见，自动只升 minor
     }
     
-    return 'patch'; // 默认
+    // 有新增的 key
+    const addedKeys = newKeys.filter(k => !oldKeys.includes(k));
+    if (addedKeys.length > 0) {
+      console.log('✅ 检测到新增的 tokens');
+      return 'minor';
+    }
+    
+    // 只有值变化
+    console.log('✏️  检测到 token 值变化');
+    return 'patch';
+    
   } catch (error) {
-    // 第一次运行，没有历史记录
-    console.log('ℹ️  首次运行，使用 patch 版本');
+    // Git 历史不存在或其他错误，默认 patch
+    console.log('ℹ️  无法获取 Git 历史，使用 patch 版本');
     return 'patch';
   }
 }
 
 /**
- * 深度分析 token 变化
+ * 统计 token 数量
  */
-function analyzeTokenChanges(oldTokens, newTokens) {
-  const changes = {
-    additions: [],
-    deletions: [],
-    modifications: [],
-    renames: []
-  };
-  
-  // 递归收集所有 token 路径
-  const oldPaths = collectTokenPaths(oldTokens);
-  const newPaths = collectTokenPaths(newTokens);
-  
-  // 查找删除的 token
-  oldPaths.forEach(path => {
-    if (!newPaths.has(path)) {
-      changes.deletions.push(path);
-    }
-  });
-  
-  // 查找新增的 token
-  newPaths.forEach(path => {
-    if (!oldPaths.has(path)) {
-      changes.additions.push(path);
-    }
-  });
-  
-  // 查找修改的 token
-  oldPaths.forEach(path => {
-    if (newPaths.has(path)) {
-      const oldValue = getTokenValue(oldTokens, path);
-      const newValue = getTokenValue(newTokens, path);
-      if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
-        changes.modifications.push(path);
-      }
-    }
-  });
-  
-  // 检测可能的重命名（简单启发式：相同值的 token）
-  if (changes.deletions.length > 0 && changes.additions.length > 0) {
-    changes.deletions.forEach(deletedPath => {
-      const deletedValue = getTokenValue(oldTokens, deletedPath);
-      changes.additions.forEach(addedPath => {
-        const addedValue = getTokenValue(newTokens, addedPath);
-        if (JSON.stringify(deletedValue) === JSON.stringify(addedValue)) {
-          changes.renames.push({ from: deletedPath, to: addedPath });
+async function countTokens() {
+  try {
+    const tokens = await fs.readJSON(TOKENS_PATH);
+    let count = 0;
+    
+    function countRecursive(obj) {
+      for (const key in obj) {
+        if (obj[key] && typeof obj[key] === 'object') {
+          if (obj[key].value !== undefined && obj[key].type !== undefined) {
+            // 这是一个 token
+            count++;
+          } else {
+            // 递归计数
+            countRecursive(obj[key]);
+          }
         }
-      });
-    });
+      }
+    }
+    
+    countRecursive(tokens);
+    return count;
+  } catch (error) {
+    return 0;
   }
-  
-  // 打印变更摘要
-  console.log('\n📊 Token 变更分析:');
-  if (changes.additions.length > 0) {
-    console.log(`  ✅ 新增: ${changes.additions.length} 个`);
-    changes.additions.slice(0, 3).forEach(p => console.log(`     - ${p}`));
-    if (changes.additions.length > 3) console.log(`     ... 还有 ${changes.additions.length - 3} 个`);
-  }
-  if (changes.deletions.length > 0) {
-    console.log(`  ❌ 删除: ${changes.deletions.length} 个`);
-    changes.deletions.slice(0, 3).forEach(p => console.log(`     - ${p}`));
-  }
-  if (changes.modifications.length > 0) {
-    console.log(`  ✏️  修改: ${changes.modifications.length} 个`);
-    changes.modifications.slice(0, 3).forEach(p => console.log(`     - ${p}`));
-  }
-  if (changes.renames.length > 0) {
-    console.log(`  🔄 重命名: ${changes.renames.length} 个`);
-    changes.renames.slice(0, 3).forEach(r => console.log(`     - ${r.from} → ${r.to}`));
-  }
-  
-  return changes;
 }
 
 /**
- * 收集所有 token 路径
+ * 扁平化对象用于比较
  */
-function collectTokenPaths(obj, currentPath = []) {
-  const paths = new Set();
+JSON.flatten = function(data) {
+  const result = {};
   
-  function traverse(node, path) {
-    if (node && typeof node === 'object') {
-      // 检查是否是 token（有 value 属性）
-      if (node.value !== undefined) {
-        paths.add(path.join('.'));
-      } else {
-        // 继续遍历
-        Object.keys(node).forEach(key => {
-          traverse(node[key], [...path, key]);
-        });
+  function recurse(cur, prop) {
+    if (Object(cur) !== cur) {
+      result[prop] = cur;
+    } else if (Array.isArray(cur)) {
+      for (let i = 0; i < cur.length; i++) {
+        recurse(cur[i], prop + "[" + i + "]");
+      }
+      if (cur.length === 0) {
+        result[prop] = [];
+      }
+    } else {
+      let isEmpty = true;
+      for (let p in cur) {
+        isEmpty = false;
+        recurse(cur[p], prop ? prop + "." + p : p);
+      }
+      if (isEmpty && prop) {
+        result[prop] = {};
       }
     }
   }
   
-  traverse(obj, currentPath);
-  return paths;
-}
-
-/**
- * 获取 token 值
- */
-function getTokenValue(tokens, path) {
-  const parts = path.split('.');
-  let current = tokens;
-  
-  for (const part of parts) {
-    if (current && current[part]) {
-      current = current[part];
-    } else {
-      return undefined;
-    }
-  }
-  
-  return current.value || current;
-}
+  recurse(data, "");
+  return result;
+};
 
 /**
  * 更新版本号
@@ -230,15 +190,26 @@ async function updateVersion(type = 'patch') {
     await fs.writeFile(pubspecPath, pubspecContent);
   }
   
-  // 保存版本状态
-  const tokensHash = await getTokensHash();
-  const tokens = await fs.readJSON(TOKENS_PATH);
-  await fs.writeJSON(VERSION_FILE, {
+  // 保存新的 token 信息（这个文件会被提交）
+  const newHash = await getTokensHash();
+  
+  // 获取东八区时间（北京时间）ISO 格式
+  const now = new Date();
+  const utcTime = now.getTime();
+  const beijingTime = new Date(utcTime + (8 * 60 * 60 * 1000));
+  // 将 UTC 时间转换为北京时间的 ISO 格式，并替换 Z 为 +08:00
+  const formattedTime = beijingTime.toISOString().replace('Z', '+08:00');
+  
+  const tokenInfo = {
+    hash: newHash,
     version: newVersion,
-    tokensHash,
-    tokensSnapshot: tokens,
-    lastUpdated: new Date().toISOString()
-  }, { spaces: 2 });
+    updatedAt: formattedTime,
+    updatedBy: process.env.CI ? 'CI/CD' : 'local',
+    tokenCount: await countTokens()
+  };
+  
+  await fs.ensureDir(path.dirname(HASH_FILE));
+  await fs.writeJSON(HASH_FILE, tokenInfo, { spaces: 2 });
   
   console.log(`✅ Version updated: ${currentVersion} → ${newVersion}`);
   return newVersion;
@@ -266,6 +237,19 @@ async function main() {
   } else if (command === 'patch' || command === 'minor' || command === 'major') {
     // 手动更新版本
     await updateVersion(command);
+  } else if (command === 'info') {
+    // 显示 token 信息
+    if (await fs.pathExists(HASH_FILE)) {
+      const info = await fs.readJSON(HASH_FILE);
+      console.log('\n📊 Token Information:');
+      console.log(`  Version: ${info.version}`);
+      console.log(`  Updated: ${info.updatedAt}`);
+      console.log(`  Updated by: ${info.updatedBy}`);
+      console.log(`  Token count: ${info.tokenCount}`);
+      console.log(`  Hash: ${info.hash}\n`);
+    } else {
+      console.log('ℹ️  No token information available (first run)');
+    }
   } else {
     // 获取当前版本
     const version = await getCurrentVersion();

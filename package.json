@@ -23,7 +23,8 @@
     "version:minor": "node scripts/version-manager.js minor",
     "version:major": "node scripts/version-manager.js major",
     "version:auto": "node scripts/version-manager.js auto",
-    "version:check": "node scripts/version-manager.js check"
+    "version:check": "node scripts/version-manager.js check",
+    "version:info": "node scripts/version-manager.js info"
   },
   "devDependencies": {
     "style-dictionary": "^3.9.0",
