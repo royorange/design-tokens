@@ -59,62 +59,6 @@ async function transformToStandardFormat(tokens) {
 }
 
 /**
- * 生成平台无关的标准 tokens
- */
-function generateStandardTokens(resolved) {
-  const standard = {
-    primitive: {
-      color: {},
-      spacing: {},
-      radius: {},
-      fontSize: {}
-    },
-    semantic: {
-      light: {},
-      dark: {}
-    },
-    component: {
-      light: {},
-      dark: {}
-    }
-  };
-
-  // 提取原始值 - 从 global 集合中
-  if (resolved.global) {
-    standard.primitive.color = resolved.global.color || {};
-    standard.primitive.spacing = resolved.global.spacing || {};
-    standard.primitive.radius = resolved.global.radius || {};
-    standard.primitive.fontSize = resolved.global.fontSize || {};
-  }
-
-  // 提取 light 主题的语义化和组件 tokens
-  if (resolved.light) {
-    // Light 主题的 semantic tokens
-    if (resolved.light.semantic) {
-      standard.semantic.light = resolved.light.semantic;
-    }
-    // Light 主题的 component tokens
-    if (resolved.light.component) {
-      standard.component.light = resolved.light.component;
-    }
-  }
-
-  // 提取 dark 主题的语义化和组件 tokens
-  if (resolved.dark) {
-    // Dark 主题的 semantic tokens
-    if (resolved.dark.semantic) {
-      standard.semantic.dark = resolved.dark.semantic;
-    }
-    // Dark 主题的 component tokens
-    if (resolved.dark.component) {
-      standard.component.dark = resolved.dark.component;
-    }
-  }
-
-  return standard;
-}
-
-/**
  * 保存转换后的 tokens
  */
 async function saveTransformedTokens(tokens) {
@@ -122,25 +66,6 @@ async function saveTransformedTokens(tokens) {
   await fs.writeJSON(
     path.join(OUTPUT_PATH, 'tokens.json'),
     tokens,
-    { spaces: 2 }
-  );
-
-  // 分别保存各层
-  await fs.writeJSON(
-    path.join(OUTPUT_PATH, 'primitive.json'),
-    tokens.primitive,
-    { spaces: 2 }
-  );
-
-  await fs.writeJSON(
-    path.join(OUTPUT_PATH, 'semantic.json'),
-    tokens.semantic,
-    { spaces: 2 }
-  );
-
-  await fs.writeJSON(
-    path.join(OUTPUT_PATH, 'component.json'),
-    tokens.component,
     { spaces: 2 }
   );
 
@@ -165,28 +90,10 @@ async function main() {
     // 调试：查看 resolved 结构
     console.log('Resolved structure:', Object.keys(resolved));
     
-    // 调试：查看更详细的结构
-    if (resolved.global) {
-      console.log('Global keys:', Object.keys(resolved.global));
-    }
-    if (resolved.light) {
-      console.log('Light keys:', Object.keys(resolved.light));
-      if (resolved.light.semantic) {
-        console.log('Light semantic:', JSON.stringify(resolved.light.semantic, null, 2).substring(0, 200));
-      }
-    }
-    if (resolved.dark) {
-      console.log('Dark keys:', Object.keys(resolved.dark));
-    }
+    // 3. 保存结果
+    await saveTransformedTokens(resolved);
     
-    // 3. 生成标准格式
-    const standardTokens = generateStandardTokens(resolved);
-    console.log('✅ Standard format generated');
-    
-    // 4. 保存结果
-    await saveTransformedTokens(standardTokens);
-    
-    return standardTokens;
+    return resolved;
   } catch (error) {
     console.error('❌ Transformation failed:', error);
     process.exit(1);
@@ -198,4 +105,4 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { main, loadTokens, transformToStandardFormat, generateStandardTokens };
+module.exports = { main, loadTokens, transformToStandardFormat };

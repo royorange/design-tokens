@@ -14,7 +14,7 @@ dependencies:
 ### Basic Usage
 
 ```dart
-import 'package:wisburg_design_tokens/design_tokens.dart';
+import 'package:wisburg_design_tokens/wisburg_design_tokens.dart';
 
 // Access tokens directly
 Container(
@@ -39,7 +39,7 @@ The package provides basic ColorSchemes, but you should create your own complete
 
 ```dart
 import 'package:flutter/material.dart';
-import 'package:wisburg_design_tokens/design_tokens.dart';
+import 'package:wisburg_design_tokens/wisburg_design_tokens.dart';
 
 class AppTheme {
   static ThemeData lightTheme = ThemeData(

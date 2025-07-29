@@ -98,442 +98,128 @@ function generateFontSizeConstants(fontSize) {
 }
 
 /**
- * 生成语义化颜色 ThemeExtension
+ * 解析颜色引用
  */
-function generateSemanticColors(semantic) {
-  if (!semantic || !semantic.light || !semantic.dark) {
-    return '';
-  }
+function resolveColorReference(value, tokens) {
+  if (!value) return 'AppColors.black';
   
-  let code = '\n/// 语义化颜色 Theme Extension\n';
-  code += '@immutable\n';
-  code += 'class AppColorsExtension extends ThemeExtension<AppColorsExtension> {\n';
-  code += '  const AppColorsExtension({\n';
+  // 如果已经是 Color 格式
+  if (value.startsWith('Color(')) return value;
   
-  // 收集所有语义化字段（从 light 和 dark 中取并集）
-  const fields = new Set();
+  // 如果是十六进制
+  if (value.startsWith('#')) return hexToFlutterColor(value);
   
-  ['light', 'dark'].forEach(theme => {
-    if (semantic[theme] && semantic[theme].color) {
-      Object.entries(semantic[theme].color).forEach(([category, items]) => {
-        Object.entries(items).forEach(([key, config]) => {
-          const fieldName = `${category}${_.upperFirst(key)}`;
-          fields.add(fieldName);
-        });
-      });
+  // 如果是引用格式 {color.primary.500}
+  if (value.startsWith('{') && value.endsWith('}')) {
+    const ref = value.slice(1, -1);
+    const parts = ref.split('.');
+    
+    // 从 tokens 中解析实际值
+    let current = tokens;
+    for (const part of parts) {
+      current = current?.[part];
+      if (!current) break;
     }
-  });
-  
-  // 生成构造函数参数
-  fields.forEach((name) => {
-    code += `    required this.${name},\n`;
-  });
-  
-  code += '  });\n\n';
-  
-  // 生成字段
-  fields.forEach((name) => {
-    code += `  final Color ${name};\n`;
-  });
-  
-  // 生成 copyWith 方法
-  code += '\n  @override\n';
-  code += '  AppColorsExtension copyWith({\n';
-  fields.forEach((name) => {
-    code += `    Color? ${name},\n`;
-  });
-  code += '  }) {\n';
-  code += '    return AppColorsExtension(\n';
-  fields.forEach((name) => {
-    code += `      ${name}: ${name} ?? this.${name},\n`;
-  });
-  code += '    );\n';
-  code += '  }\n';
-  
-  // 生成 lerp 方法
-  code += '\n  @override\n';
-  code += '  AppColorsExtension lerp(ThemeExtension<AppColorsExtension>? other, double t) {\n';
-  code += '    if (other is! AppColorsExtension) {\n';
-  code += '      return this;\n';
-  code += '    }\n';
-  code += '    return AppColorsExtension(\n';
-  fields.forEach((name) => {
-    code += `      ${name}: Color.lerp(${name}, other.${name}, t)!,\n`;
-  });
-  code += '    );\n';
-  code += '  }\n';
-  
-  // 生成 light 主题静态实例
-  code += '\n  /// Light theme colors\n';
-  code += '  static const light = AppColorsExtension(\n';
-  if (semantic.light && semantic.light.color) {
-    Object.entries(semantic.light.color).forEach(([category, items]) => {
-      Object.entries(items).forEach(([key, config]) => {
-        const fieldName = `${category}${_.upperFirst(key)}`;
-        // 优先使用 rawValue（包含引用），如果没有则使用 value
-        const rawValue = config.rawValue || config.value;
-        
-        if (rawValue.startsWith('{') && rawValue.endsWith('}')) {
-          // 处理引用 - 例如 {color.neutral.900} -> AppColors.neutral900
-          const ref = rawValue.slice(1, -1); // 移除花括号
-          const parts = ref.split('.');
-          if (parts[0] === 'color') {
-            if (parts.length === 2) {
-              // 例如 {color.white} -> AppColors.white
-              code += `    ${fieldName}: AppColors.${parts[1]},\n`;
-            } else if (parts.length === 3) {
-              // 例如 {color.neutral.900} -> AppColors.neutral900
-              code += `    ${fieldName}: AppColors.${parts[1]}${parts[2]},\n`;
-            }
-          }
-        } else if (rawValue.startsWith('#')) {
-          code += `    ${fieldName}: ${hexToFlutterColor(rawValue)},\n`;
-        }
-      });
-    });
+    
+    if (current?.value) {
+      // 递归解析，处理嵌套引用
+      return resolveColorReference(current.value, tokens);
+    }
+    
+    // 如果解析失败，尝试直接映射到 AppColors
+    if (parts[0] === 'color') {
+      if (parts.length === 2) {
+        return `AppColors.${parts[1]}`;
+      } else if (parts.length === 3) {
+        return `AppColors.${parts[1]}${parts[2]}`;
+      }
+    }
   }
-  code += '  );\n';
   
-  // 生成 dark 主题静态实例
-  code += '\n  /// Dark theme colors\n';
-  code += '  static const dark = AppColorsExtension(\n';
-  if (semantic.dark && semantic.dark.color) {
-    Object.entries(semantic.dark.color).forEach(([category, items]) => {
-      Object.entries(items).forEach(([key, config]) => {
-        const fieldName = `${category}${_.upperFirst(key)}`;
-        // 优先使用 rawValue（包含引用），如果没有则使用 value
-        const rawValue = config.rawValue || config.value;
-        
-        if (rawValue.startsWith('{') && rawValue.endsWith('}')) {
-          // 处理引用
-          const ref = rawValue.slice(1, -1);
-          const parts = ref.split('.');
-          if (parts[0] === 'color') {
-            if (parts.length === 2) {
-              code += `    ${fieldName}: AppColors.${parts[1]},\n`;
-            } else if (parts.length === 3) {
-              code += `    ${fieldName}: AppColors.${parts[1]}${parts[2]},\n`;
-            }
-          }
-        } else if (rawValue.startsWith('#')) {
-          code += `    ${fieldName}: ${hexToFlutterColor(rawValue)},\n`;
-        }
-      });
-    });
-  }
-  code += '  );\n';
-  
-  code += '}\n';
-  
-  return code;
+  // 默认返回
+  return 'AppColors.black';
 }
 
 /**
- * 生成组件 tokens
+ * 生成 Material 3 ColorScheme
  */
-function generateComponentTokens(component) {
-  if (!component || (!component.light && !component.dark)) {
-    return '';
-  }
-  
-  let code = '\n/// 组件级别 Tokens\n';
-  
-  // 收集所有组件类型
-  const componentTypes = new Set();
-  ['light', 'dark'].forEach(theme => {
-    if (component[theme]) {
-      Object.keys(component[theme]).forEach(type => componentTypes.add(type));
-    }
-  });
-  
-  // 为每个组件类型生成 token 类
-  componentTypes.forEach(componentType => {
-    if (componentType === 'button') {
-      // 收集所有按钮属性
-      const buttonProps = new Map();
-      
-      // 从 light 和 dark 主题中收集所有可能的属性
-      ['light', 'dark'].forEach(theme => {
-        if (component[theme] && component[theme].button) {
-          const button = component[theme].button;
-          
-          // 处理 primary 变体中的颜色属性
-          if (button.primary) {
-            Object.entries(button.primary).forEach(([key, value]) => {
-              if (typeof value === 'object' && value.type === 'color') {
-                // 将 background-hover 转换为 backgroundHover
-                const camelKey = key.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
-                const propName = `primary${_.upperFirst(camelKey)}`;
-                buttonProps.set(propName, 'color');
-              }
-            });
-          }
-          
-          // 处理其他顶层属性（如 padding, radius）
-          Object.entries(button).forEach(([key, value]) => {
-            if (key !== 'primary' && typeof value === 'object' && value.type) {
-              buttonProps.set(key, value.type);
-            }
-          });
-        }
-      });
-      
-      // 生成 ButtonTokens 类
-      code += 'class ButtonTokens {\n';
-      code += '  const ButtonTokens({\n';
-      
-      // 生成构造函数参数
-      buttonProps.forEach((type, key) => {
-        const propName = key.replace(/-/g, '_');
-        if (type === 'color') {
-          code += `    required this.${propName},\n`;
-        }
-      });
-      
-      // 添加间距和圆角属性
-      code += '    required this.paddingX,\n';
-      code += '    required this.paddingY,\n';
-      code += '    required this.radius,\n';
-      
-      code += '  });\n\n';
-      
-      // 生成字段
-      buttonProps.forEach((type, key) => {
-        const propName = key.replace(/-/g, '_');
-        if (type === 'color') {
-          code += `  final Color ${propName};\n`;
-        }
-      });
-      
-      code += '  final double paddingX;\n';
-      code += '  final double paddingY;\n';
-      code += '  final double radius;\n';
-      
-      // 生成 light 静态实例
-      if (component.light && component.light.button) {
-        code += '\n  static const light = ButtonTokens(\n';
-        
-        const lightButton = component.light.button;
-        
-        // 处理 primary 变体的颜色属性
-        if (lightButton.primary) {
-          const colorProps = [];
-          Object.entries(lightButton.primary).forEach(([key, config]) => {
-            if (config && config.type === 'color') {
-              colorProps.push([key, config]);
-            }
-          });
-          
-          // 按键名排序
-          colorProps.sort((a, b) => a[0].localeCompare(b[0]));
-          
-          colorProps.forEach(([key, config]) => {
-            // 将 background-hover 转换为 backgroundHover
-            const camelKey = key.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
-            const propName = `primary${_.upperFirst(camelKey)}`;
-            const rawValue = config.rawValue || config.value;
-            
-            if (rawValue.startsWith('{') && rawValue.endsWith('}')) {
-              const ref = rawValue.slice(1, -1);
-              const parts = ref.split('.');
-              if (parts[0] === 'color') {
-                if (parts.length === 2) {
-                  code += `    ${propName}: AppColors.${parts[1]},\n`;
-                } else if (parts.length === 3) {
-                  code += `    ${propName}: AppColors.${parts[1]}${parts[2]},\n`;
-                }
-              }
-            } else if (rawValue.startsWith('#')) {
-              code += `    ${propName}: ${hexToFlutterColor(rawValue)},\n`;
-            }
-          });
-        }
-        
-        // 处理间距和圆角
-        if (lightButton.padding) {
-          const paddingX = lightButton.padding.x;
-          const paddingY = lightButton.padding.y;
-          
-          if (paddingX) {
-            const rawValue = paddingX.rawValue || paddingX.value;
-            if (typeof rawValue === 'string' && rawValue.startsWith('{')) {
-              const ref = rawValue.slice(1, -1).replace('spacing.', '');
-              code += `    paddingX: AppSpacing.spacing${ref},\n`;
-            } else {
-              code += `    paddingX: ${paddingX.value}.0,\n`;
-            }
-          }
-          
-          if (paddingY) {
-            const rawValue = paddingY.rawValue || paddingY.value;
-            if (typeof rawValue === 'string' && rawValue.startsWith('{')) {
-              const ref = rawValue.slice(1, -1).replace('spacing.', '');
-              code += `    paddingY: AppSpacing.spacing${ref},\n`;
-            } else {
-              code += `    paddingY: ${paddingY.value}.0,\n`;
-            }
-          }
-        }
-        
-        if (lightButton.radius) {
-          const rawValue = lightButton.radius.rawValue || lightButton.radius.value;
-          if (typeof rawValue === 'string' && rawValue.startsWith('{')) {
-            const ref = rawValue.slice(1, -1).replace('radius.', '');
-            code += `    radius: AppRadius.${ref},\n`;
-          } else {
-            code += `    radius: ${lightButton.radius.value}.0,\n`;
-          }
-        }
-        
-        code += '  );\n';
-      }
-      
-      // 生成 dark 静态实例
-      if (component.dark && component.dark.button) {
-        code += '\n  static const dark = ButtonTokens(\n';
-        
-        const darkButton = component.dark.button;
-        
-        // 处理 primary 变体的颜色属性
-        if (darkButton.primary) {
-          const colorProps = [];
-          Object.entries(darkButton.primary).forEach(([key, config]) => {
-            if (config && config.type === 'color') {
-              colorProps.push([key, config]);
-            }
-          });
-          
-          // 按键名排序
-          colorProps.sort((a, b) => a[0].localeCompare(b[0]));
-          
-          colorProps.forEach(([key, config]) => {
-            // 将 background-hover 转换为 backgroundHover
-            const camelKey = key.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
-            const propName = `primary${_.upperFirst(camelKey)}`;
-            const rawValue = config.rawValue || config.value;
-            
-            if (rawValue.startsWith('{') && rawValue.endsWith('}')) {
-              const ref = rawValue.slice(1, -1);
-              const parts = ref.split('.');
-              if (parts[0] === 'color') {
-                if (parts.length === 2) {
-                  code += `    ${propName}: AppColors.${parts[1]},\n`;
-                } else if (parts.length === 3) {
-                  code += `    ${propName}: AppColors.${parts[1]}${parts[2]},\n`;
-                }
-              }
-            } else if (rawValue.startsWith('#')) {
-              code += `    ${propName}: ${hexToFlutterColor(rawValue)},\n`;
-            }
-          });
-        }
-        
-        // Dark 主题可能没有定义间距和圆角，使用 light 的值
-        if (component.light && component.light.button && component.light.button.padding) {
-          const paddingX = component.light.button.padding.x;
-          const paddingY = component.light.button.padding.y;
-          
-          if (paddingX) {
-            const rawValue = paddingX.rawValue || paddingX.value;
-            if (typeof rawValue === 'string' && rawValue.startsWith('{')) {
-              const ref = rawValue.slice(1, -1).replace('spacing.', '');
-              code += `    paddingX: AppSpacing.spacing${ref},\n`;
-            } else {
-              code += `    paddingX: ${paddingX.value}.0,\n`;
-            }
-          }
-          
-          if (paddingY) {
-            const rawValue = paddingY.rawValue || paddingY.value;
-            if (typeof rawValue === 'string' && rawValue.startsWith('{')) {
-              const ref = rawValue.slice(1, -1).replace('spacing.', '');
-              code += `    paddingY: AppSpacing.spacing${ref},\n`;
-            } else {
-              code += `    paddingY: ${paddingY.value}.0,\n`;
-            }
-          }
-        }
-        
-        if (component.light && component.light.button && component.light.button.radius) {
-          const rawValue = component.light.button.radius.rawValue || component.light.button.radius.value;
-          if (typeof rawValue === 'string' && rawValue.startsWith('{')) {
-            const ref = rawValue.slice(1, -1).replace('radius.', '');
-            code += `    radius: AppRadius.${ref},\n`;
-          } else {
-            code += `    radius: ${component.light.button.radius.value}.0,\n`;
-          }
-        }
-        
-        code += '  );\n';
-      }
-      
-      code += '}\n';
-    }
-  });
-  
-  return code;
-}
-
-/**
- * 生成 ColorScheme
- */
-function generateColorSchemes(semantic, primitive) {
+function generateColorSchemes(tokens) {
   let code = '\n/// Material 3 ColorScheme definitions\nclass AppColorSchemes {\n';
   
-  // Light ColorScheme
+  // Light ColorScheme - 注意新结构中语义化颜色直接在 light 层下
+  const light = tokens.light || {};
   code += `  static const ColorScheme lightColorScheme = ColorScheme(\n`;
   code += `    brightness: Brightness.light,\n`;
-  code += `    primary: AppColors.primary500,\n`;
-  code += `    onPrimary: AppColors.white,\n`;
-  code += `    primaryContainer: AppColors.primary100,\n`;
-  code += `    onPrimaryContainer: AppColors.primary900,\n`;
-  code += `    secondary: AppColors.primary400,\n`;
-  code += `    onSecondary: AppColors.white,\n`;
-  code += `    secondaryContainer: AppColors.primary100,\n`;
-  code += `    onSecondaryContainer: AppColors.primary900,\n`;
-  code += `    error: AppColors.error600,\n`;
-  code += `    onError: AppColors.white,\n`;
-  code += `    errorContainer: AppColors.error50,\n`;
-  code += `    onErrorContainer: AppColors.error900,\n`;
-  code += `    surface: AppColors.white,\n`;
-  code += `    onSurface: AppColors.neutral900,\n`;
-  code += `    surfaceContainerHighest: AppColors.neutral100,\n`;
-  code += `    onSurfaceVariant: AppColors.neutral700,\n`;
-  code += `    outline: AppColors.neutral400,\n`;
-  code += `    outlineVariant: AppColors.neutral300,\n`;
-  code += `    shadow: AppColors.black,\n`;
-  code += `    scrim: AppColors.black,\n`;
-  code += `    inverseSurface: AppColors.neutral900,\n`;
-  code += `    onInverseSurface: AppColors.white,\n`;
-  code += `    inversePrimary: AppColors.primary300,\n`;
+  code += `    primary: ${resolveColorReference(light.primary?.default?.value, tokens)},\n`;
+  code += `    onPrimary: ${resolveColorReference(light.primary?.on?.value, tokens)},\n`;
+  code += `    primaryContainer: ${resolveColorReference(light.primary?.container?.value, tokens)},\n`;
+  code += `    onPrimaryContainer: ${resolveColorReference(light.primary?.onContainer?.value, tokens)},\n`;
+  code += `    secondary: ${resolveColorReference(light.secondary?.default?.value, tokens)},\n`;
+  code += `    onSecondary: ${resolveColorReference(light.secondary?.on?.value, tokens)},\n`;
+  code += `    secondaryContainer: ${resolveColorReference(light.secondary?.container?.value, tokens)},\n`;
+  code += `    onSecondaryContainer: ${resolveColorReference(light.secondary?.onContainer?.value, tokens)},\n`;
+  code += `    tertiary: ${resolveColorReference(light.tertiary?.default?.value, tokens)},\n`;
+  code += `    onTertiary: ${resolveColorReference(light.tertiary?.on?.value, tokens)},\n`;
+  code += `    tertiaryContainer: ${resolveColorReference(light.tertiary?.container?.value, tokens)},\n`;
+  code += `    onTertiaryContainer: ${resolveColorReference(light.tertiary?.onContainer?.value, tokens)},\n`;
+  code += `    error: ${resolveColorReference(light.error?.default?.value, tokens)},\n`;
+  code += `    onError: ${resolveColorReference(light.error?.on?.value, tokens)},\n`;
+  code += `    errorContainer: ${resolveColorReference(light.error?.container?.value, tokens)},\n`;
+  code += `    onErrorContainer: ${resolveColorReference(light.error?.onContainer?.value, tokens)},\n`;
+  code += `    surface: ${resolveColorReference(light.surface?.default?.value, tokens)},\n`;
+  code += `    onSurface: ${resolveColorReference(light.surface?.on?.value, tokens)},\n`;
+  // surfaceVariant is deprecated in Flutter 3.18+, commented out but kept for reference
+  // code += `    surfaceVariant: ${resolveColorReference(light.surface?.variant?.value, tokens)},\n`;
+  code += `    onSurfaceVariant: ${resolveColorReference(light.surface?.onVariant?.value, tokens)},\n`;
+  // background and onBackground are deprecated in Flutter 3.18+, commented out but kept for reference
+  // code += `    background: ${resolveColorReference(light.background?.default?.value, tokens)},\n`;
+  // code += `    onBackground: ${resolveColorReference(light.background?.on?.value, tokens)},\n`;
+  code += `    outline: ${resolveColorReference(light.outline?.default?.value, tokens)},\n`;
+  code += `    outlineVariant: ${resolveColorReference(light.outline?.variant?.value, tokens)},\n`;
+  code += `    shadow: ${resolveColorReference(light.shadow?.default?.value, tokens)},\n`;
+  code += `    scrim: ${resolveColorReference(light.scrim?.default?.value, tokens)},\n`;
+  code += `    inverseSurface: ${resolveColorReference(light.inverseSurface?.default?.value, tokens)},\n`;
+  code += `    onInverseSurface: ${resolveColorReference(light.inverseSurface?.on?.value, tokens)},\n`;
+  code += `    inversePrimary: ${resolveColorReference(light.inversePrimary?.default?.value, tokens)},\n`;
+  code += `    surfaceContainerHighest: ${resolveColorReference(light.surface?.containerHighest?.value, tokens)},\n`;
   code += `  );\n\n`;
   
-  // Dark ColorScheme
+  // Dark ColorScheme - 注意新结构中语义化颜色直接在 dark 层下
+  const dark = tokens.dark || {};
   code += `  static const ColorScheme darkColorScheme = ColorScheme(\n`;
   code += `    brightness: Brightness.dark,\n`;
-  code += `    primary: AppColors.primary400,\n`;
-  code += `    onPrimary: AppColors.primary900,\n`;
-  code += `    primaryContainer: AppColors.primary700,\n`;
-  code += `    onPrimaryContainer: AppColors.primary100,\n`;
-  code += `    secondary: AppColors.primary300,\n`;
-  code += `    onSecondary: AppColors.primary900,\n`;
-  code += `    secondaryContainer: AppColors.primary700,\n`;
-  code += `    onSecondaryContainer: AppColors.primary100,\n`;
-  code += `    error: AppColors.error500,\n`;
-  code += `    onError: AppColors.white,\n`;
-  code += `    errorContainer: AppColors.error800,\n`;
-  code += `    onErrorContainer: AppColors.error200,\n`;
-  code += `    surface: AppColors.neutral900,\n`;
-  code += `    onSurface: AppColors.neutral100,\n`;
-  code += `    surfaceContainerHighest: AppColors.neutral800,\n`;
-  code += `    onSurfaceVariant: AppColors.neutral300,\n`;
-  code += `    outline: AppColors.neutral600,\n`;
-  code += `    outlineVariant: AppColors.neutral700,\n`;
-  code += `    shadow: AppColors.black,\n`;
-  code += `    scrim: AppColors.black,\n`;
-  code += `    inverseSurface: AppColors.neutral100,\n`;
-  code += `    onInverseSurface: AppColors.neutral900,\n`;
-  code += `    inversePrimary: AppColors.primary600,\n`;
+  code += `    primary: ${resolveColorReference(dark.primary?.default?.value, tokens)},\n`;
+  code += `    onPrimary: ${resolveColorReference(dark.primary?.on?.value, tokens)},\n`;
+  code += `    primaryContainer: ${resolveColorReference(dark.primary?.container?.value, tokens)},\n`;
+  code += `    onPrimaryContainer: ${resolveColorReference(dark.primary?.onContainer?.value, tokens)},\n`;
+  code += `    secondary: ${resolveColorReference(dark.secondary?.default?.value, tokens)},\n`;
+  code += `    onSecondary: ${resolveColorReference(dark.secondary?.on?.value, tokens)},\n`;
+  code += `    secondaryContainer: ${resolveColorReference(dark.secondary?.container?.value, tokens)},\n`;
+  code += `    onSecondaryContainer: ${resolveColorReference(dark.secondary?.onContainer?.value, tokens)},\n`;
+  code += `    tertiary: ${resolveColorReference(dark.tertiary?.default?.value, tokens)},\n`;
+  code += `    onTertiary: ${resolveColorReference(dark.tertiary?.on?.value, tokens)},\n`;
+  code += `    tertiaryContainer: ${resolveColorReference(dark.tertiary?.container?.value, tokens)},\n`;
+  code += `    onTertiaryContainer: ${resolveColorReference(dark.tertiary?.onContainer?.value, tokens)},\n`;
+  code += `    error: ${resolveColorReference(dark.error?.default?.value, tokens)},\n`;
+  code += `    onError: ${resolveColorReference(dark.error?.on?.value, tokens)},\n`;
+  code += `    errorContainer: ${resolveColorReference(dark.error?.container?.value, tokens)},\n`;
+  code += `    onErrorContainer: ${resolveColorReference(dark.error?.onContainer?.value, tokens)},\n`;
+  code += `    surface: ${resolveColorReference(dark.surface?.default?.value, tokens)},\n`;
+  code += `    onSurface: ${resolveColorReference(dark.surface?.on?.value, tokens)},\n`;
+  // surfaceVariant is deprecated in Flutter 3.18+, commented out but kept for reference
+  // code += `    surfaceVariant: ${resolveColorReference(dark.surface?.variant?.value, tokens)},\n`;
+  code += `    onSurfaceVariant: ${resolveColorReference(dark.surface?.onVariant?.value, tokens)},\n`;
+  // background and onBackground are deprecated in Flutter 3.18+, commented out but kept for reference
+  // code += `    background: ${resolveColorReference(dark.background?.default?.value, tokens)},\n`;
+  // code += `    onBackground: ${resolveColorReference(dark.background?.on?.value, tokens)},\n`;
+  code += `    outline: ${resolveColorReference(dark.outline?.default?.value, tokens)},\n`;
+  code += `    outlineVariant: ${resolveColorReference(dark.outline?.variant?.value, tokens)},\n`;
+  code += `    shadow: ${resolveColorReference(dark.shadow?.default?.value, tokens)},\n`;
+  code += `    scrim: ${resolveColorReference(dark.scrim?.default?.value, tokens)},\n`;
+  code += `    inverseSurface: ${resolveColorReference(dark.inverseSurface?.default?.value, tokens)},\n`;
+  code += `    onInverseSurface: ${resolveColorReference(dark.inverseSurface?.on?.value, tokens)},\n`;
+  code += `    inversePrimary: ${resolveColorReference(dark.inversePrimary?.default?.value, tokens)},\n`;
+  code += `    surfaceContainerHighest: ${resolveColorReference(dark.surface?.containerHighest?.value, tokens)},\n`;
   code += `  );\n`;
   
   code += '}\n';
@@ -541,103 +227,180 @@ function generateColorSchemes(semantic, primitive) {
 }
 
 /**
- * 生成 DesignTokens 类
+ * 生成语义化颜色 ThemeExtension
  */
-function generateDesignTokensClass(tokens) {
-  let code = '\n/// Design Tokens 直接访问\n';
-  code += 'class DesignTokens {\n';
-  code += '  // Private constructor to prevent instantiation\n';
-  code += '  DesignTokens._();\n\n';
+function generateSemanticColors(tokens) {
+  const lightColors = tokens.light?.color || {};
+  const darkColors = tokens.dark?.color || {};
   
-  code += '  // Token collections\n';
-  code += '  static const colors = AppColors;\n';
-  code += '  static const spacing = AppSpacing;\n';
-  code += '  static const radius = AppRadius;\n';
-  code += '  static const fontSize = AppFontSizes;\n';
-  code += '  static const colorSchemes = AppColorSchemes;\n';
+  // 收集所有语义化颜色（排除 Material 已有的）
+  const excludeKeys = ['primary', 'secondary', 'tertiary', 'error', 'surface', 'background', 'outline', 'inverseSurface', 'inversePrimary', 'shadow', 'scrim'];
+  const semanticKeys = Object.keys(lightColors).filter(key => !excludeKeys.includes(key));
   
-  // 只有在有语义化颜色时才添加
-  if (tokens.semantic && tokens.semantic.color) {
-    code += '\n  // Semantic color extensions\n';
-    code += '  static const lightColorExtension = AppColorsExtension.light;\n';
-    code += '  static const darkColorExtension = AppColorsExtension.dark;\n';
-  }
+  if (semanticKeys.length === 0) return '';
   
-  // 只有在有组件 tokens 时才添加
-  if (tokens.component) {
-    code += '\n  // Component tokens\n';
-    // 检查是否有按钮组件
-    if ((tokens.component.light && tokens.component.light.button) || 
-        (tokens.component.dark && tokens.component.dark.button)) {
-      code += '  static const lightButtonTokens = ButtonTokens.light;\n';
-      code += '  static const darkButtonTokens = ButtonTokens.dark;\n';
+  let code = '\n/// 语义化颜色 Theme Extension\n';
+  code += '@immutable\n';
+  code += 'class AppColorsExtension extends ThemeExtension<AppColorsExtension> {\n';
+  
+  // Constructor
+  code += '  const AppColorsExtension({\n';
+  semanticKeys.forEach(key => {
+    const props = lightColors[key];
+    if (props && typeof props === 'object') {
+      Object.keys(props).forEach(prop => {
+        code += `    required this.${_.camelCase(key + '_' + prop)},\n`;
+      });
     }
-  }
+  });
+  code += '  });\n\n';
+  
+  // Fields
+  semanticKeys.forEach(key => {
+    const props = lightColors[key];
+    if (props && typeof props === 'object') {
+      Object.keys(props).forEach(prop => {
+        code += `  final Color ${_.camelCase(key + '_' + prop)};\n`;
+      });
+    }
+  });
+  
+  // copyWith method
+  code += '\n  @override\n';
+  code += '  AppColorsExtension copyWith({\n';
+  semanticKeys.forEach(key => {
+    const props = lightColors[key];
+    if (props && typeof props === 'object') {
+      Object.keys(props).forEach(prop => {
+        code += `    Color? ${_.camelCase(key + '_' + prop)},\n`;
+      });
+    }
+  });
+  code += '  }) {\n';
+  code += '    return AppColorsExtension(\n';
+  semanticKeys.forEach(key => {
+    const props = lightColors[key];
+    if (props && typeof props === 'object') {
+      Object.keys(props).forEach(prop => {
+        const name = _.camelCase(key + '_' + prop);
+        code += `      ${name}: ${name} ?? this.${name},\n`;
+      });
+    }
+  });
+  code += '    );\n';
+  code += '  }\n';
+  
+  // lerp method
+  code += '\n  @override\n';
+  code += '  AppColorsExtension lerp(ThemeExtension<AppColorsExtension>? other, double t) {\n';
+  code += '    if (other is! AppColorsExtension) {\n';
+  code += '      return this;\n';
+  code += '    }\n';
+  code += '    return AppColorsExtension(\n';
+  semanticKeys.forEach(key => {
+    const props = lightColors[key];
+    if (props && typeof props === 'object') {
+      Object.keys(props).forEach(prop => {
+        const name = _.camelCase(key + '_' + prop);
+        code += `      ${name}: Color.lerp(${name}, other.${name}, t)!,\n`;
+      });
+    }
+  });
+  code += '    );\n';
+  code += '  }\n';
+  
+  // Light theme static instance
+  code += '\n  /// Light theme colors\n';
+  code += '  static const light = AppColorsExtension(\n';
+  semanticKeys.forEach(key => {
+    const props = lightColors[key];
+    if (props && typeof props === 'object') {
+      Object.keys(props).forEach(prop => {
+        code += `    ${_.camelCase(key + '_' + prop)}: ${resolveColorReference(props[prop]?.value, tokens)},\n`;
+      });
+    }
+  });
+  code += '  );\n';
+  
+  // Dark theme static instance
+  code += '\n  /// Dark theme colors\n';
+  code += '  static const dark = AppColorsExtension(\n';
+  semanticKeys.forEach(key => {
+    const props = darkColors[key];
+    if (props && typeof props === 'object') {
+      Object.keys(props).forEach(prop => {
+        code += `    ${_.camelCase(key + '_' + prop)}: ${resolveColorReference(props[prop]?.value, tokens)},\n`;
+      });
+    }
+  });
+  code += '  );\n';
   
   code += '}\n';
-  
   return code;
 }
 
-
 /**
- * 主构建函数
+ * 主函数
  */
-async function buildFlutter() {
+async function main() {
   try {
     console.log('🔄 Building Flutter package...');
     
-    // 读取 tokens
+    // 1. 读取 tokens
     const tokens = await fs.readJSON(TOKENS_PATH);
     
-    // 生成 design_tokens.dart
-    let dartCode = '// Generated by Design Tokens - DO NOT EDIT\n';
-    dartCode += '// Last updated: ' + new Date().toISOString() + '\n\n';
-    dartCode += "import 'package:flutter/material.dart';\n\n";
+    // 读取原始 tokens 文件用于解析引用
+    const originalTokensPath = path.join(__dirname, '../tokens/figma/tokens.json');
+    const originalTokens = await fs.readJSON(originalTokensPath);
+    
+    // 2. 生成 Dart 代码
+    let dartCode = `// Generated by Design Tokens - DO NOT EDIT
+// Last updated: ${new Date().toISOString()}
+
+import 'package:flutter/material.dart';
+`;
     
     // 生成颜色常量
-    dartCode += generateColorConstants(tokens.primitive.color);
-    
-    // 生成间距常量
-    dartCode += generateSpacingConstants(tokens.primitive.spacing);
-    
-    // 生成圆角常量
-    dartCode += generateRadiusConstants(tokens.primitive.radius);
-    
-    // 生成字体大小常量
-    dartCode += generateFontSizeConstants(tokens.primitive.fontSize);
-    
-    // 生成语义化颜色 ThemeExtension
-    if (tokens.semantic) {
-      dartCode += generateSemanticColors(tokens.semantic);
+    if (tokens.global?.color) {
+      dartCode += '\n' + generateColorConstants(tokens.global.color);
     }
     
-    // 生成组件 tokens
-    dartCode += generateComponentTokens(tokens.component);
+    // 生成间距常量
+    if (tokens.global?.spacing) {
+      dartCode += '\n' + generateSpacingConstants(tokens.global.spacing);
+    }
     
-    // 生成 ColorScheme
-    dartCode += generateColorSchemes(tokens.semantic, tokens.primitive);
+    // 生成圆角常量
+    if (tokens.global?.borderRadius) {
+      dartCode += '\n' + generateRadiusConstants(tokens.global.borderRadius);
+    }
     
-    // 生成 DesignTokens 类
-    dartCode += generateDesignTokensClass(tokens);
+    // 生成字体大小常量
+    if (tokens.global?.fontSizes) {
+      dartCode += '\n' + generateFontSizeConstants(tokens.global.fontSizes);
+    }
     
-    // 写入文件
-    await fs.writeFile(
-      path.join(OUTPUT_PATH, 'design_tokens.dart'),
-      dartCode
-    );
+    // 生成语义化颜色扩展
+    dartCode += generateSemanticColors(originalTokens);
+    
+    // 生成 ColorScheme - 传入原始 tokens 用于解析引用
+    dartCode += generateColorSchemes(originalTokens);
+    
+    // 3. 保存文件
+    const outputFile = path.join(OUTPUT_PATH, 'wisburg_design_tokens.dart');
+    await fs.writeFile(outputFile, dartCode);
     
     console.log('✅ Flutter package built successfully');
     
   } catch (error) {
-    console.error('❌ Flutter build failed:', error);
+    console.error('❌ Build failed:', error);
     process.exit(1);
   }
 }
 
 // 如果直接运行此脚本
 if (require.main === module) {
-  buildFlutter();
+  main();
 }
 
-module.exports = { buildFlutter };
+module.exports = { main };

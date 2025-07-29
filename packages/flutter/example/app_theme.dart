@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:wisburg_design_tokens/design_tokens.dart';
+import 'package:wisburg_design_tokens/wisburg_design_tokens.dart';
 
 /// 应用主题配置示例
 /// 展示如何使用 design tokens 构建完整的主题

@@ -10,7 +10,11 @@
       "Bash(pnpm run:*)",
       "Bash(grep:*)",
       "Bash(pnpm add:*)",
-      "Bash(npx yaml-lint:*)"
+      "Bash(npx yaml-lint:*)",
+      "Bash(node:*)",
+      "Bash(flutter pub publish:*)",
+      "Bash(git pull:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": []
   }
