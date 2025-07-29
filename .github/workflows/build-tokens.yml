@@ -1,4 +1,4 @@
-name: Build and Publish Design Tokens
+name: Build and Publish Design Tokens (Improved)
 
 on:
   push:
@@ -20,14 +20,68 @@ permissions:
   packages: write
 
 jobs:
-  build:
+  # 第一步：检查并更新版本
+  version-check:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.VERSION }}
+      should_release: ${{ steps.version.outputs.SHOULD_RELEASE }}
     
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      
+      - name: Install dependencies
+        run: pnpm install
+      
+      - name: Check and update version
+        id: version
+        run: |
+          # 检查是否需要更新版本
+          if pnpm run version:check > /dev/null 2>&1; then
+            echo "SHOULD_RELEASE=true" >> $GITHUB_OUTPUT
+            
+            # 自动更新版本
+            pnpm run version:auto
+            
+            # 获取新版本号
+            VERSION=$(node -p "require('./package.json').version")
+            echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+            
+            # 提交版本更新
+            git config --local user.email "action@github.com"
+            git config --local user.name "GitHub Action"
+            git add -A
+            git commit -m "chore: bump version to v$VERSION [skip ci]"
+            git push
+          else
+            echo "SHOULD_RELEASE=false" >> $GITHUB_OUTPUT
+            echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+          fi
+
+  # 第二步：构建
+  build:
+    needs: version-check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main  # 确保获取最新的版本更新
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -67,7 +121,7 @@ jobs:
             packages/css/
             tokens/transformed/
       
-      # 只提交 Flutter 包的生成文件（因为 Flutter 通过 Git 引用）
+      # 提交 Flutter 包的生成文件
       - name: Commit Flutter package files
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
@@ -76,15 +130,18 @@ jobs:
           git add packages/flutter/lib/
           git diff --staged --quiet || git commit -m "chore: update Flutter design tokens [skip ci]"
           git push
-      
+
+  # 第三步：发布 NPM
   publish-npm:
-    needs: build
+    needs: [version-check, build]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    if: needs.version-check.outputs.should_release == 'true' && github.ref == 'refs/heads/main'
     
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: main
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -103,7 +160,6 @@ jobs:
           name: built-packages
           path: .
       
-      # 发布到 NPM (需要配置 NPM_TOKEN)
       - name: Publish Tailwind package
         run: |
           cd packages/tailwind
@@ -117,16 +173,18 @@ jobs:
           pnpm publish --access public --no-git-checks || true
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-  
-  # Flutter 包发布到 pub.dev
+
+  # 第四步：发布 Flutter
   publish-flutter:
-    needs: build
+    needs: [version-check, build]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    if: needs.version-check.outputs.should_release == 'true' && github.ref == 'refs/heads/main'
     
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: main
       
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -148,57 +206,33 @@ jobs:
         run: |
           cd packages/flutter
           flutter pub publish --force || true
-  
-  # 创建 Release
+
+  # 第五步：创建 Release
   create-release:
-    needs: [build, publish-npm, publish-flutter]
+    needs: [version-check, build, publish-npm, publish-flutter]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    if: needs.version-check.outputs.should_release == 'true' && github.ref == 'refs/heads/main'
     
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
         with:
-          node-version: '18'
-      
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
-      
-      - name: Install dependencies
-        run: pnpm install
-      
-      - name: Check and update version
-        id: version
-        run: |
-          # 自动检查并更新版本号
-          pnpm run version:auto
-          # 获取更新后的版本号
-          echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
-          # 提交版本号更新
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add -A
-          git diff --staged --quiet || git commit -m "chore: bump version to v$(node -p "require('./package.json').version") [skip ci]"
+          ref: main
       
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ steps.version.outputs.VERSION }}
-          name: Release v${{ steps.version.outputs.VERSION }}
+          tag_name: v${{ needs.version-check.outputs.version }}
+          name: Release v${{ needs.version-check.outputs.version }}
           body: |
             ## Design Tokens Update
             
             This release includes updated design tokens from Figma.
             
             ### Packages
-            - Flutter: `wisburg_design_tokens` v${{ steps.version.outputs.VERSION }}
-            - Tailwind: `@wisburg/design-tokens-tailwind` v${{ steps.version.outputs.VERSION }}
-            - CSS/Web: `@wisburg/design-tokens-css` v${{ steps.version.outputs.VERSION }}
+            - Flutter: `wisburg_design_tokens` v${{ needs.version-check.outputs.version }}
+            - Tailwind: `@wisburg/design-tokens-tailwind` v${{ needs.version-check.outputs.version }}
+            - CSS/Web: `@wisburg/design-tokens-css` v${{ needs.version-check.outputs.version }}
             
             ### Changes
             See commit history for detailed changes.
@@ -207,6 +241,6 @@ jobs:
       
       - name: Output version info
         run: |
-          echo "::notice title=新版本发布::Design Tokens 已更新到 v${{ steps.version.outputs.VERSION }}"
+          echo "::notice title=新版本发布::Design Tokens 已更新到 v${{ needs.version-check.outputs.version }}"
           echo "Flutter 项目请更新 pubspec.yaml："
-          echo "  wisburg_design_tokens: ^${{ steps.version.outputs.VERSION }}"
+          echo "  wisburg_design_tokens: ^${{ needs.version-check.outputs.version }}"
