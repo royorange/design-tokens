@@ -1,0 +1,65 @@
+name: Fix Publish v1.0.1
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish-packages:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: v1.0.1  # 使用已经创建的 tag
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      
+      - name: Install dependencies
+        run: pnpm install
+      
+      - name: Build all packages
+        run: pnpm run build
+      
+      # 发布到 NPM
+      - name: Publish CSS package to NPM
+        run: |
+          cd packages/css
+          echo "Publishing version $(node -p "require('./package.json').version")"
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      
+      - name: Publish Tailwind package to NPM
+        run: |
+          cd packages/tailwind
+          echo "Publishing version $(node -p "require('./package.json').version")"
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      
+      # 发布 Flutter 包到 pub.dev
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.16.0'
+      
+      - name: Setup Dart credentials
+        run: |
+          mkdir -p ~/.pub-cache
+          cat <<EOF > ~/.pub-cache/credentials.json
+          ${{ secrets.PUB_CREDENTIALS }}
+          EOF
+      
+      - name: Publish Flutter package
+        run: |
+          cd packages/flutter
+          flutter pub publish --force
