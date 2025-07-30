@@ -1,0 +1,77 @@
+name: Publish Release
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to publish (e.g., v1.0.1)'
+        required: true
+        type: string
+
+jobs:
+  publish-all:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || github.event.inputs.tag }}
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      
+      - name: Install dependencies
+        run: pnpm install
+      
+      - name: Build all packages
+        run: pnpm run build
+      
+      - name: Check versions
+        run: |
+          echo "Root version: $(node -p "require('./package.json').version")"
+          echo "CSS version: $(node -p "require('./packages/css/package.json').version")"
+          echo "Tailwind version: $(node -p "require('./packages/tailwind/package.json').version")"
+          echo "Flutter version: $(grep '^version:' packages/flutter/pubspec.yaml | cut -d' ' -f2)"
+      
+      # Publish NPM packages
+      - name: Publish CSS package
+        run: |
+          cd packages/css
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      
+      - name: Publish Tailwind package  
+        run: |
+          cd packages/tailwind
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      
+      # Setup Flutter
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.16.0'
+      
+      - name: Setup pub credentials
+        run: |
+          mkdir -p ~/.pub-cache
+          cat <<EOF > ~/.pub-cache/credentials.json
+          ${{ secrets.PUB_CREDENTIALS }}
+          EOF
+      
+      - name: Publish Flutter package
+        run: |
+          cd packages/flutter
+          flutter pub publish --force

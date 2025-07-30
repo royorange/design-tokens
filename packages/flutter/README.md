@@ -1,5 +1,7 @@
 # Wisburg Design Tokens
 
+> ⚠️ **Internal Package**: This package is specifically designed for Wisburg projects and contains opinionated design decisions that may not be suitable for general use.
+
 Flutter design tokens for Wisburg applications. Auto-generated from Figma design system.
 
 ## Installation
@@ -100,6 +102,12 @@ final borderRadius = DesignTokens.radius.md;
 
 This package is automatically updated when design tokens change in Figma.
 
+## For Wisburg Developers
+
+This package is part of the Wisburg design system. For questions or issues:
+- Check the [main repository](https://github.com/royorange/design-tokens)
+- Contact the design system team
+
 ## License
 
-MIT
+Internal use only. Not for public distribution.
