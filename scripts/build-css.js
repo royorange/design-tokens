@@ -31,20 +31,28 @@ function generateCssVariables(tokens) {
   
   // Root variables (light mode)
   css += ':root {\n';
-  css += generateCssVarsFromObject(tokens.primitive, []);
-  css += generateSemanticCssVars(tokens.semantic.light, tokens.component.light);
+  // Global tokens
+  css += generateCssVarsFromObject(tokens.global, []);
+  // Light theme semantic tokens
+  if (tokens.light) {
+    css += generateCssVarsFromObject(tokens.light, ['theme']);
+  }
   css += '}\n\n';
   
   // Dark mode
   css += '@media (prefers-color-scheme: dark) {\n';
   css += '  :root {\n';
-  css += generateSemanticCssVars(tokens.semantic.dark, tokens.component.dark, '    ');
+  if (tokens.dark) {
+    css += generateCssVarsFromObject(tokens.dark, ['theme'], '    ');
+  }
   css += '  }\n';
   css += '}\n\n';
   
   // Dark mode class
   css += '.dark {\n';
-  css += generateSemanticCssVars(tokens.semantic.dark, tokens.component.dark, '  ');
+  if (tokens.dark) {
+    css += generateCssVarsFromObject(tokens.dark, ['theme'], '  ');
+  }
   css += '}\n';
   
   return css;
@@ -121,52 +129,61 @@ function generateJsTokens(tokens) {
     components: {}
   };
   
-  // Primitive tokens
-  if (tokens.primitive.color) {
-    Object.entries(tokens.primitive.color).forEach(([colorName, shades]) => {
-      if (typeof shades === 'object' && !shades.value) {
-        jsTokens.colors[colorName] = {};
-        Object.entries(shades).forEach(([shade, config]) => {
-          jsTokens.colors[colorName][shade] = config.value;
-        });
-      } else if (shades.value) {
-        jsTokens.colors[colorName] = shades.value;
-      }
-    });
-  }
-  
-  // Spacing
-  if (tokens.primitive.spacing) {
-    Object.entries(tokens.primitive.spacing).forEach(([key, config]) => {
-      jsTokens.spacing[key] = `${config.value}px`;
-    });
-  }
-  
-  // Border radius
-  if (tokens.primitive.radius) {
-    Object.entries(tokens.primitive.radius).forEach(([key, config]) => {
-      jsTokens.radius[key] = config.value === '9999' ? '9999px' : `${config.value}px`;
-    });
-  }
-  
-  // Font sizes
-  if (tokens.primitive.fontSize) {
-    Object.entries(tokens.primitive.fontSize).forEach(([key, config]) => {
-      jsTokens.fontSize[key] = `${config.value}px`;
-    });
+  // Global tokens
+  if (tokens.global) {
+    // Colors
+    if (tokens.global.color) {
+      Object.entries(tokens.global.color).forEach(([colorName, shades]) => {
+        if (typeof shades === 'object' && !shades.value) {
+          jsTokens.colors[colorName] = {};
+          Object.entries(shades).forEach(([shade, config]) => {
+            jsTokens.colors[colorName][shade] = config.value;
+          });
+        } else if (shades.value) {
+          jsTokens.colors[colorName] = shades.value;
+        }
+      });
+    }
+    
+    // Spacing
+    if (tokens.global.spacing) {
+      Object.entries(tokens.global.spacing).forEach(([key, config]) => {
+        jsTokens.spacing[key] = `${config.value}px`;
+      });
+    }
+    
+    // Border radius
+    if (tokens.global.radius) {
+      Object.entries(tokens.global.radius).forEach(([key, config]) => {
+        jsTokens.radius[key] = config.value === 9999 ? '9999px' : `${config.value}px`;
+      });
+    }
+    
+    // Font sizes
+    if (tokens.global.fontSize) {
+      Object.entries(tokens.global.fontSize).forEach(([key, config]) => {
+        jsTokens.fontSize[key] = `${config.value}px`;
+      });
+    }
+    
+    // Font families
+    if (tokens.global.fontFamily) {
+      jsTokens.fontFamily = {};
+      Object.entries(tokens.global.fontFamily).forEach(([key, config]) => {
+        jsTokens.fontFamily[key] = config.value;
+      });
+    }
   }
   
   // Semantic tokens
   ['light', 'dark'].forEach(theme => {
-    if (tokens.semantic[theme]) {
-      jsTokens.semantic[theme] = processSemanticTokens(tokens.semantic[theme]);
+    if (tokens[theme]) {
+      jsTokens.semantic[theme] = processSemanticTokens(tokens[theme]);
     }
   });
   
-  // Component tokens
-  if (tokens.component) {
-    jsTokens.components = tokens.component;
-  }
+  // Component tokens - not used in current structure
+  jsTokens.components = {};
   
   return jsTokens;
 }
@@ -217,14 +234,12 @@ export interface DesignTokens {
   spacing: Record<string, string>;
   radius: Record<string, string>;
   fontSize: Record<string, string>;
+  fontFamily?: Record<string, string>;
   semantic: {
     light: SemanticTokens;
     dark: SemanticTokens;
   };
-  components: {
-    light: ComponentTokens;
-    dark: ComponentTokens;
-  };
+  components: Record<string, any>;
 }
 
 export interface SemanticTokens {
@@ -264,10 +279,7 @@ function getCssVar(path) {
 
 // Helper to use theme-specific tokens
 function useTheme(theme = 'light') {
-  return {
-    ...tokens.semantic[theme],
-    ...tokens.components[theme]
-  };
+  return tokens[theme] || {};
 }
 
 module.exports = {

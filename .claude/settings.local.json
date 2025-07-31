@@ -14,7 +14,9 @@
       "Bash(node:*)",
       "Bash(flutter pub publish:*)",
       "Bash(git pull:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(rg:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }

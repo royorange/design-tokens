@@ -72,29 +72,61 @@ function processBorderRadius(radius) {
 /**
  * 生成语义化颜色
  */
-function generateSemanticColors(semantic) {
+function generateSemanticColors(tokens) {
   const result = {};
   
   // Light mode semantic colors
-  if (semantic.light?.color) {
-    const lightColors = semantic.light.color;
+  if (tokens.light) {
+    const lightTokens = tokens.light;
     
-    if (lightColors.background) {
-      result.surface = lightColors.background.base?.value || '#FFFFFF';
-      result['surface-elevated'] = lightColors.background.elevated?.value || '#F8FAFC';
+    if (lightTokens.surface) {
+      result.surface = lightTokens.surface.default?.value || '#FFFFFF';
+      result['surface-on'] = lightTokens.surface.on?.value || '#000000';
+      result['surface-container-highest'] = lightTokens.surface.containerHighest?.value || '#F5F5F5';
     }
     
-    if (lightColors.text) {
-      result['text-primary'] = lightColors.text.primary?.value || '#111827';
-      result['text-secondary'] = lightColors.text.secondary?.value || '#6B7280';
-      result['text-disabled'] = lightColors.text.disabled?.value || '#9CA3AF';
+    if (lightTokens.primary) {
+      result['primary'] = lightTokens.primary.default?.value || '#4F46E5';
+      result['primary-on'] = lightTokens.primary.on?.value || '#FFFFFF';
+      result['primary-container'] = lightTokens.primary.container?.value || '#E0E7FF';
     }
     
-    if (lightColors.border) {
-      result['border-default'] = lightColors.border.default?.value || '#D1D5DB';
-      result['border-focus'] = lightColors.border.focus?.value || '#4F46E5';
+    if (lightTokens.error) {
+      result['error'] = lightTokens.error.default?.value || '#EF4444';
+      result['error-on'] = lightTokens.error.on?.value || '#FFFFFF';
+    }
+    
+    if (lightTokens.outline) {
+      result['border-default'] = lightTokens.outline.default?.value || '#D1D5DB';
+      result['border-variant'] = lightTokens.outline.variant?.value || '#E5E7EB';
     }
   }
+  
+  return result;
+}
+
+/**
+ * 处理字体大小
+ */
+function processFontSizes(fontSize) {
+  const result = {};
+  
+  Object.entries(fontSize).forEach(([key, config]) => {
+    result[key] = `${config.value}px`;
+  });
+  
+  return result;
+}
+
+/**
+ * 处理字体系列
+ */
+function processFontFamilies(fontFamily) {
+  const result = {};
+  
+  Object.entries(fontFamily).forEach(([key, config]) => {
+    result[key] = config.value;
+  });
   
   return result;
 }
@@ -104,12 +136,14 @@ function generateSemanticColors(semantic) {
  */
 async function buildTailwindConfig(tokens) {
   // 处理原始 tokens
-  const colors = processColors(tokens.primitive.color);
-  const spacing = processSpacing(tokens.primitive.spacing);
-  const borderRadius = processBorderRadius(tokens.primitive.radius);
+  const colors = processColors(tokens.global.color);
+  const spacing = processSpacing(tokens.global.spacing);
+  const borderRadius = processBorderRadius(tokens.global.radius);
+  const fontSize = processFontSizes(tokens.global.fontSize);
+  const fontFamily = processFontFamilies(tokens.global.fontFamily || {});
   
   // 生成语义化颜色
-  const semanticColors = generateSemanticColors(tokens.semantic);
+  const semanticColors = generateSemanticColors(tokens);
   
   // 组合配置
   const config = {
@@ -248,12 +282,14 @@ async function buildTailwindConfig(tokens) {
     
     spacing,
     borderRadius,
+    fontSize,
+    fontFamily,
     
     // 语义化颜色作为 CSS 变量
     semanticColors,
     
-    // 组件 tokens
-    components: generateComponentTokens(tokens.component)
+    // 组件 tokens - 当前版本暂不使用组件层
+    components: {}
   };
   
   return config;
@@ -292,6 +328,8 @@ function generateIndexFile(config) {
   content += '  colors: ' + JSON.stringify(config.colors, null, 2).replace(/"require\('tailwindcss\/colors'\)\.(\w+)"/g, 'colors.$1') + ',\n\n';
   content += '  spacing: ' + JSON.stringify(config.spacing, null, 2) + ',\n\n';
   content += '  borderRadius: ' + JSON.stringify(config.borderRadius, null, 2) + ',\n\n';
+  content += '  fontSize: ' + JSON.stringify(config.fontSize, null, 2) + ',\n\n';
+  content += '  fontFamily: ' + JSON.stringify(config.fontFamily, null, 2) + ',\n\n';
   content += '  semanticColors: ' + JSON.stringify(config.semanticColors, null, 2) + ',\n\n';
   
   // Plugin for CSS variables
@@ -321,6 +359,8 @@ function generateTypeDefinitions() {
   content += '  colors: Record<string, string | Record<string, string>>;\n';
   content += '  spacing: Record<string, string>;\n';
   content += '  borderRadius: Record<string, string>;\n';
+  content += '  fontSize: Record<string, string>;\n';
+  content += '  fontFamily: Record<string, string>;\n';
   content += '  semanticColors: Record<string, string>;\n';
   content += '  plugin: (helpers: any) => void;\n';
   content += '}\n\n';
