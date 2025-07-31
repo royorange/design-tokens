@@ -1,6 +1,6 @@
 {
   "name": "@wisburg/design-tokens",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Unified design token system for multiple platforms",
   "private": true,
   "scripts": {
