@@ -1,4 +1,4 @@
-name: Build and Publish Design Tokens (Improved)
+name: Build and Publish Design Tokens
 
 on:
   push:
