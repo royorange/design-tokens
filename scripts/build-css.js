@@ -327,6 +327,14 @@ async function buildCSS() {
   try {
     console.log('🔄 Building CSS/Web package...');
     
+    // 读取主 package.json 的版本号
+    const mainPkg = await fs.readJSON(path.join(__dirname, '../package.json'));
+    const version = mainPkg.version;
+    
+    // 确保输出目录存在
+    fs.ensureDirSync(OUTPUT_PATH);
+    fs.ensureDirSync(CSS_PATH);
+    
     // 读取 tokens
     const tokens = await fs.readJSON(TOKENS_PATH);
     
@@ -363,7 +371,7 @@ async function buildCSS() {
     // 创建 package.json
     const packageJson = {
       name: '@wisburg/design-tokens-css',
-      version: '1.0.0',
+      version: version,
       description: 'Design tokens CSS variables and utilities for web applications',
       main: 'index.js',
       module: 'index.mjs',

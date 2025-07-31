@@ -377,6 +377,10 @@ async function buildTailwind() {
   try {
     console.log('🔄 Building Tailwind package...');
     
+    // 读取主 package.json 的版本号
+    const mainPkg = await fs.readJSON(path.join(__dirname, '../package.json'));
+    const version = mainPkg.version;
+    
     // 读取 tokens
     const tokens = await fs.readJSON(TOKENS_PATH);
     
@@ -398,7 +402,7 @@ async function buildTailwind() {
     // 创建 package.json
     const packageJson = {
       name: '@wisburg/design-tokens-tailwind',
-      version: '1.0.0',
+      version: version,
       description: 'Design tokens for Tailwind CSS',
       main: 'index.js',
       types: 'index.d.ts',
