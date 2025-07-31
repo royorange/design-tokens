@@ -82,24 +82,35 @@ jobs:
           if [[ "$NEEDS_UPDATE" == "true" ]]; then
             echo "SHOULD_RELEASE=true" >> $GITHUB_OUTPUT
             
-            # 确定版本更新类型
-            VERSION_TYPE="${{ github.event.inputs.version_type }}"
-            if [[ -z "$VERSION_TYPE" || "$VERSION_TYPE" == "auto" ]]; then
-              pnpm run version:auto
-            else
-              pnpm run version:$VERSION_TYPE
+            # 判断是否需要更新版本号
+            UPDATE_VERSION=true
+            
+            # 如果是强制发布且 tokens 没有变化
+            if [[ "${{ github.event.inputs.force_release }}" == "true" ]] && ! pnpm run version:check > /dev/null 2>&1; then
+              echo "ℹ️ 强制发布模式，使用当前版本"
+              UPDATE_VERSION=false
             fi
             
-            # 获取新版本号
+            if [[ "$UPDATE_VERSION" == "true" ]]; then
+              # 确定版本更新类型
+              VERSION_TYPE="${{ github.event.inputs.version_type }}"
+              if [[ -z "$VERSION_TYPE" || "$VERSION_TYPE" == "auto" ]]; then
+                pnpm run version:auto
+              else
+                pnpm run version:$VERSION_TYPE
+              fi
+              
+              # 提交版本更新
+              git config --local user.email "action@github.com"
+              git config --local user.name "GitHub Action"
+              git add -A
+              git commit -m "chore: bump version to v$(node -p "require('./package.json').version") [skip ci]"
+              git push
+            fi
+            
+            # 获取版本号（无论是否更新）
             VERSION=$(node -p "require('./package.json').version")
             echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-            
-            # 提交版本更新
-            git config --local user.email "action@github.com"
-            git config --local user.name "GitHub Action"
-            git add -A
-            git commit -m "chore: bump version to v$VERSION [skip ci]"
-            git push
           else
             echo "SHOULD_RELEASE=false" >> $GITHUB_OUTPUT
             echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
