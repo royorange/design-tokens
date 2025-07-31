@@ -70,7 +70,9 @@ function generateRadiusConstants(radius) {
   if (radius) {
     Object.entries(radius).forEach(([key, config]) => {
       const value = parseInt(config.value);
-      code += `  static const double ${key} = ${value}.0;\n`;
+      // 处理以数字开头的键名（如 2xl）
+      const dartKey = /^\d/.test(key) ? `radius${key.charAt(0).toUpperCase() + key.slice(1)}` : key;
+      code += `  static const double ${dartKey} = ${value}.0;\n`;
     });
   }
   
@@ -92,6 +94,22 @@ function generateFontSizeConstants(fontSize) {
       code += `  static const double ${dartKey} = ${value}.0;\n`;
     });
   }
+  
+  code += '}\n';
+  return code;
+}
+
+/**
+ * 生成字体系列常量
+ */
+function generateFontFamilyConstants(fontFamily) {
+  let code = '/// 字体系列定义\n';
+  code += 'class AppFontFamily {\n';
+  
+  Object.entries(fontFamily).forEach(([key, config]) => {
+    const constantName = _.camelCase(key);
+    code += `  static const String ${constantName} = '${config.value}';\n`;
+  });
   
   code += '}\n';
   return code;
@@ -371,13 +389,18 @@ import 'package:flutter/material.dart';
     }
     
     // 生成圆角常量
-    if (tokens.global?.borderRadius) {
-      dartCode += '\n' + generateRadiusConstants(tokens.global.borderRadius);
+    if (tokens.global?.radius) {
+      dartCode += '\n' + generateRadiusConstants(tokens.global.radius);
     }
     
     // 生成字体大小常量
-    if (tokens.global?.fontSizes) {
-      dartCode += '\n' + generateFontSizeConstants(tokens.global.fontSizes);
+    if (tokens.global?.fontSize) {
+      dartCode += '\n' + generateFontSizeConstants(tokens.global.fontSize);
+    }
+    
+    // 生成字体系列常量
+    if (tokens.global?.fontFamily) {
+      dartCode += '\n' + generateFontFamilyConstants(tokens.global.fontFamily);
     }
     
     // 生成语义化颜色扩展
