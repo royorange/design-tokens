@@ -1,6 +1,6 @@
 {
   "name": "@wisburg/design-tokens-tailwind",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Design tokens for Tailwind CSS",
   "main": "index.js",
   "types": "index.d.ts",
