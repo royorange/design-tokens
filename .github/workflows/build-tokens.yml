@@ -14,6 +14,22 @@ on:
       - 'scripts/**'
       - 'package.json'
   workflow_dispatch:
+    inputs:
+      force_release:
+        description: '强制发布（即使 tokens 没有变化）'
+        required: false
+        type: boolean
+        default: false
+      version_type:
+        description: '版本更新类型'
+        required: false
+        type: choice
+        default: 'auto'
+        options:
+          - auto
+          - patch
+          - minor
+          - major
 
 permissions:
   contents: write
@@ -51,11 +67,28 @@ jobs:
         id: version
         run: |
           # 检查是否需要更新版本
-          if pnpm run version:check > /dev/null 2>&1; then
+          NEEDS_UPDATE=false
+          
+          # 如果是手动触发且选择了强制发布
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.force_release }}" == "true" ]]; then
+            echo "ℹ️ 强制发布模式"
+            NEEDS_UPDATE=true
+          # 否则检查 tokens 是否有变化
+          elif pnpm run version:check > /dev/null 2>&1; then
+            echo "ℹ️ 检测到 tokens 变化"
+            NEEDS_UPDATE=true
+          fi
+          
+          if [[ "$NEEDS_UPDATE" == "true" ]]; then
             echo "SHOULD_RELEASE=true" >> $GITHUB_OUTPUT
             
-            # 自动更新版本
-            pnpm run version:auto
+            # 确定版本更新类型
+            VERSION_TYPE="${{ github.event.inputs.version_type }}"
+            if [[ -z "$VERSION_TYPE" || "$VERSION_TYPE" == "auto" ]]; then
+              pnpm run version:auto
+            else
+              pnpm run version:$VERSION_TYPE
+            fi
             
             # 获取新版本号
             VERSION=$(node -p "require('./package.json').version")
