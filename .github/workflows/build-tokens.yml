@@ -82,21 +82,26 @@ jobs:
           if [[ "$NEEDS_UPDATE" == "true" ]]; then
             echo "SHOULD_RELEASE=true" >> $GITHUB_OUTPUT
             
+            # 获取版本更新类型
+            VERSION_TYPE="${{ github.event.inputs.version_type }}"
+            
             # 判断是否需要更新版本号
             UPDATE_VERSION=true
             
-            # 如果是强制发布且 tokens 没有变化
-            if [[ "${{ github.event.inputs.force_release }}" == "true" ]] && ! pnpm run version:check > /dev/null 2>&1; then
+            # 只有在选择 auto 且强制发布且 tokens 没有变化时，才不更新版本
+            if [[ "${{ github.event.inputs.force_release }}" == "true" ]] && 
+               [[ -z "$VERSION_TYPE" || "$VERSION_TYPE" == "auto" ]] && 
+               ! pnpm run version:check > /dev/null 2>&1; then
               echo "ℹ️ 强制发布模式，使用当前版本"
               UPDATE_VERSION=false
             fi
             
             if [[ "$UPDATE_VERSION" == "true" ]]; then
-              # 确定版本更新类型
-              VERSION_TYPE="${{ github.event.inputs.version_type }}"
+              # 更新版本
               if [[ -z "$VERSION_TYPE" || "$VERSION_TYPE" == "auto" ]]; then
                 pnpm run version:auto
               else
+                echo "ℹ️ 手动版本更新：$VERSION_TYPE"
                 pnpm run version:$VERSION_TYPE
               fi
               
