@@ -199,7 +199,11 @@ function generateColorSchemes(tokens) {
   code += `    inverseSurface: ${resolveColorReference(light.inverseSurface?.default?.value, tokens)},\n`;
   code += `    onInverseSurface: ${resolveColorReference(light.inverseSurface?.on?.value, tokens)},\n`;
   code += `    inversePrimary: ${resolveColorReference(light.inversePrimary?.default?.value, tokens)},\n`;
-  code += `    surfaceContainerHighest: ${resolveColorReference(light.surface?.containerHighest?.value, tokens)},\n`;
+  code += `    surfaceContainerLowest: ${resolveColorReference(light.surface?.lowest?.value, tokens)},\n`;
+  code += `    surfaceContainerLow: ${resolveColorReference(light.surface?.lowest?.value, tokens)},\n`;
+  code += `    surfaceContainer: ${resolveColorReference(light.surface?.default?.value, tokens)},\n`;
+  code += `    surfaceContainerHigh: ${resolveColorReference(light.surface?.high?.value, tokens)},\n`;
+  code += `    surfaceContainerHighest: ${resolveColorReference(light.surface?.highest?.value, tokens)},\n`;
   code += `  );\n\n`;
   
   // Dark ColorScheme - 注意新结构中语义化颜色直接在 dark 层下
@@ -237,8 +241,89 @@ function generateColorSchemes(tokens) {
   code += `    inverseSurface: ${resolveColorReference(dark.inverseSurface?.default?.value, tokens)},\n`;
   code += `    onInverseSurface: ${resolveColorReference(dark.inverseSurface?.on?.value, tokens)},\n`;
   code += `    inversePrimary: ${resolveColorReference(dark.inversePrimary?.default?.value, tokens)},\n`;
-  code += `    surfaceContainerHighest: ${resolveColorReference(dark.surface?.containerHighest?.value, tokens)},\n`;
+  code += `    surfaceContainerLowest: ${resolveColorReference(dark.surface?.lowest?.value, tokens)},\n`;
+  code += `    surfaceContainerLow: ${resolveColorReference(dark.surface?.lowest?.value, tokens)},\n`;
+  code += `    surfaceContainer: ${resolveColorReference(dark.surface?.default?.value, tokens)},\n`;
+  code += `    surfaceContainerHigh: ${resolveColorReference(dark.surface?.high?.value, tokens)},\n`;
+  code += `    surfaceContainerHighest: ${resolveColorReference(dark.surface?.highest?.value, tokens)},\n`;
   code += `  );\n`;
+  
+  code += '}\n';
+  return code;
+}
+
+/**
+ * 生成 Material 3 Surface Extension
+ */
+function generateSurfaceExtension(tokens) {
+  const light = tokens.light || {};
+  const dark = tokens.dark || {};
+  
+  let code = '\n/// Material 3 Surface Extension\n';
+  code += '@immutable\n';
+  code += 'class SurfaceColorsExtension extends ThemeExtension<SurfaceColorsExtension> {\n';
+  
+  // Constructor
+  code += '  const SurfaceColorsExtension({\n';
+  code += '    required this.surfaceLowest,\n';
+  code += '    required this.surface,\n';
+  code += '    required this.surfaceHigh,\n';
+  code += '    required this.surfaceHighest,\n';
+  code += '  });\n\n';
+  
+  // Fields
+  code += '  final Color surfaceLowest;\n';
+  code += '  final Color surface;\n';
+  code += '  final Color surfaceHigh;\n';
+  code += '  final Color surfaceHighest;\n';
+  
+  // copyWith method
+  code += '\n  @override\n';
+  code += '  SurfaceColorsExtension copyWith({\n';
+  code += '    Color? surfaceLowest,\n';
+  code += '    Color? surface,\n';
+  code += '    Color? surfaceHigh,\n';
+  code += '    Color? surfaceHighest,\n';
+  code += '  }) {\n';
+  code += '    return SurfaceColorsExtension(\n';
+  code += '      surfaceLowest: surfaceLowest ?? this.surfaceLowest,\n';
+  code += '      surface: surface ?? this.surface,\n';
+  code += '      surfaceHigh: surfaceHigh ?? this.surfaceHigh,\n';
+  code += '      surfaceHighest: surfaceHighest ?? this.surfaceHighest,\n';
+  code += '    );\n';
+  code += '  }\n';
+  
+  // lerp method
+  code += '\n  @override\n';
+  code += '  SurfaceColorsExtension lerp(ThemeExtension<SurfaceColorsExtension>? other, double t) {\n';
+  code += '    if (other is! SurfaceColorsExtension) {\n';
+  code += '      return this;\n';
+  code += '    }\n';
+  code += '    return SurfaceColorsExtension(\n';
+  code += '      surfaceLowest: Color.lerp(surfaceLowest, other.surfaceLowest, t)!,\n';
+  code += '      surface: Color.lerp(surface, other.surface, t)!,\n';
+  code += '      surfaceHigh: Color.lerp(surfaceHigh, other.surfaceHigh, t)!,\n';
+  code += '      surfaceHighest: Color.lerp(surfaceHighest, other.surfaceHighest, t)!,\n';
+  code += '    );\n';
+  code += '  }\n';
+  
+  // Light theme static instance
+  code += '\n  /// Light theme surface colors\n';
+  code += '  static final light = SurfaceColorsExtension(\n';
+  code += `    surfaceLowest: ${resolveColorReference(light.surface?.lowest?.value, tokens)},\n`;
+  code += `    surface: ${resolveColorReference(light.surface?.default?.value, tokens)},\n`;
+  code += `    surfaceHigh: ${resolveColorReference(light.surface?.high?.value, tokens)},\n`;
+  code += `    surfaceHighest: ${resolveColorReference(light.surface?.highest?.value, tokens)},\n`;
+  code += '  );\n';
+  
+  // Dark theme static instance
+  code += '\n  /// Dark theme surface colors\n';
+  code += '  static final dark = SurfaceColorsExtension(\n';
+  code += `    surfaceLowest: ${resolveColorReference(dark.surface?.lowest?.value, tokens)},\n`;
+  code += `    surface: ${resolveColorReference(dark.surface?.default?.value, tokens)},\n`;
+  code += `    surfaceHigh: ${resolveColorReference(dark.surface?.high?.value, tokens)},\n`;
+  code += `    surfaceHighest: ${resolveColorReference(dark.surface?.highest?.value, tokens)},\n`;
+  code += '  );\n';
   
   code += '}\n';
   return code;
@@ -410,7 +495,7 @@ import 'package:flutter/material.dart';
     dartCode += generateColorSchemes(originalTokens);
     
     // 3. 保存文件
-    const outputFile = path.join(OUTPUT_PATH, 'wisburg_design_tokens.dart');
+    const outputFile = path.join(OUTPUT_PATH, 'design_tokens.dart');
     await fs.writeFile(outputFile, dartCode);
     
     console.log('✅ Flutter package built successfully');
