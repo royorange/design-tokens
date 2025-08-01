@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 
 /// 颜色常量定义
 class AppColors {
-
   // Primary Colors
   static const Color primary50 = Color(0xFFEAEAFD);
   static const Color primary100 = Color(0xFFCBC9F8);
@@ -46,7 +45,6 @@ class AppColors {
   static const Color red900 = Color(0xFF7F1D1D);
 }
 
-
 /// 间距常量定义
 class AppSpacing {
   static const double spacing0 = 0.0;
@@ -61,7 +59,6 @@ class AppSpacing {
   static const double spacing9 = 64.0;
 }
 
-
 /// 圆角常量定义
 class AppRadius {
   static const double none = 0.0;
@@ -72,7 +69,6 @@ class AppRadius {
   static const double radius2xl = 16.0;
   static const double full = 9999.0;
 }
-
 
 /// 字体大小常量定义
 class AppFontSizes {
