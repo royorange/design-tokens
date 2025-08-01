@@ -1,6 +1,6 @@
 name: wisburg_design_tokens
 description: Internal design tokens for Wisburg Flutter applications. Not for public use.
-version: 1.0.3
+version: 1.0.4
 homepage: https://github.com/royorange/design-tokens
 repository: https://github.com/royorange/design-tokens/tree/main/packages/flutter
 
