@@ -1,6 +1,6 @@
 {
   "name": "@wisburg/design-tokens-css",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Design tokens CSS variables and utilities for web applications",
   "main": "index.js",
   "module": "index.mjs",
