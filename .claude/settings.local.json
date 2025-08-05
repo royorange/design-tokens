@@ -16,7 +16,8 @@
       "Bash(git pull:*)",
       "Bash(git checkout:*)",
       "Bash(rg:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(cat:*)"
     ],
     "deny": []
   }

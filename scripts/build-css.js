@@ -55,6 +55,46 @@ function generateCssVariables(tokens) {
   }
   css += '}\n';
   
+  // 生成按钮组件样式
+  css += '\n/* Button Components */\n';
+  css += generateButtonStyles();
+  
+  return css;
+}
+
+/**
+ * 生成按钮组件样式
+ */
+function generateButtonStyles() {
+  let css = '';
+  
+  // Primary button
+  css += '.btn-primary {\n';
+  css += '  background-color: var(--theme-button-primary-default-background);\n';
+  css += '  color: var(--theme-button-primary-default-text);\n';
+  css += '}\n';
+  css += '.btn-primary svg {\n';
+  css += '  color: var(--theme-button-primary-default-iconcolor);\n';
+  css += '}\n\n';
+  
+  // Secondary button
+  css += '.btn-secondary {\n';
+  css += '  background-color: var(--theme-button-secondary-default-background);\n';
+  css += '  color: var(--theme-button-secondary-default-text);\n';
+  css += '}\n';
+  css += '.btn-secondary svg {\n';
+  css += '  color: var(--theme-button-secondary-default-iconcolor);\n';
+  css += '}\n\n';
+  
+  // Tertiary button
+  css += '.btn-tertiary {\n';
+  css += '  background-color: var(--theme-button-tertiary-default-background);\n';
+  css += '  color: var(--theme-button-tertiary-default-text);\n';
+  css += '}\n';
+  css += '.btn-tertiary svg {\n';
+  css += '  color: var(--theme-button-tertiary-default-iconcolor);\n';
+  css += '}\n';
+  
   return css;
 }
 
@@ -197,7 +237,25 @@ function processSemanticTokens(semantic) {
   Object.entries(semantic).forEach(([category, values]) => {
     result[category] = {};
     Object.entries(values).forEach(([key, config]) => {
-      result[category][key] = config.value;
+      if (typeof config === 'object' && config.value) {
+        result[category][key] = config.value;
+      } else if (typeof config === 'object' && !config.value) {
+        // 处理嵌套对象（如 button.primary.default）
+        result[category][key] = {};
+        Object.entries(config).forEach(([subKey, subConfig]) => {
+          if (typeof subConfig === 'object' && subConfig.value) {
+            result[category][key][subKey] = subConfig.value;
+          } else if (typeof subConfig === 'object' && !subConfig.value) {
+            // 处理更深层的嵌套（如 button.primary.default.background）
+            result[category][key][subKey] = {};
+            Object.entries(subConfig).forEach(([deepKey, deepConfig]) => {
+              if (deepConfig && deepConfig.value) {
+                result[category][key][subKey][deepKey] = deepConfig.value;
+              }
+            });
+          }
+        });
+      }
     });
   });
   

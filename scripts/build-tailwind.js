@@ -82,7 +82,9 @@ function generateSemanticColors(tokens) {
     if (lightTokens.surface) {
       result.surface = lightTokens.surface.default?.value || '#FFFFFF';
       result['surface-on'] = lightTokens.surface.on?.value || '#000000';
-      result['surface-container-highest'] = lightTokens.surface.containerHighest?.value || '#F5F5F5';
+      result['surface-container'] = lightTokens.surface.container?.value || '#F5F5F5';
+      result['surface-container-low'] = lightTokens.surface.low?.value || '#F8F8F8';
+      result['surface-container-high'] = lightTokens.surface.high?.value || '#F0F0F0';
     }
     
     if (lightTokens.primary) {
@@ -99,6 +101,21 @@ function generateSemanticColors(tokens) {
     if (lightTokens.outline) {
       result['border-default'] = lightTokens.outline.default?.value || '#D1D5DB';
       result['border-variant'] = lightTokens.outline.variant?.value || '#E5E7EB';
+    }
+    
+    // 添加按钮组件颜色
+    if (lightTokens.button) {
+      result['btn-primary-bg'] = lightTokens.button.primary?.default?.background?.value || '#4F46E5';
+      result['btn-primary-text'] = lightTokens.button.primary?.default?.text?.value || '#FFFFFF';
+      result['btn-primary-icon'] = lightTokens.button.primary?.default?.iconcolor?.value || '#FFFFFF';
+      
+      result['btn-secondary-bg'] = lightTokens.button.secondary?.default?.background?.value || '#1F2937';
+      result['btn-secondary-text'] = lightTokens.button.secondary?.default?.text?.value || '#FFFFFF';
+      result['btn-secondary-icon'] = lightTokens.button.secondary?.default?.iconcolor?.value || '#FFFFFF';
+      
+      result['btn-tertiary-bg'] = lightTokens.button.tertiary?.default?.background?.value || '#F3F4F6';
+      result['btn-tertiary-text'] = lightTokens.button.tertiary?.default?.text?.value || '#1F2937';
+      result['btn-tertiary-icon'] = lightTokens.button.tertiary?.default?.iconcolor?.value || '#1F2937';
     }
   }
   
@@ -333,7 +350,7 @@ function generateIndexFile(config) {
   content += '  semanticColors: ' + JSON.stringify(config.semanticColors, null, 2) + ',\n\n';
   
   // Plugin for CSS variables
-  content += '  plugin: function({ addBase, theme }) {\n';
+  content += '  plugin: function({ addBase, addComponents, theme }) {\n';
   content += '    addBase({\n';
   content += '      \':root\': {\n';
   
@@ -342,6 +359,31 @@ function generateIndexFile(config) {
     content += `        '--color-${key}': '${value}',\n`;
   });
   
+  content += '      },\n';
+  content += '    });\n';
+  content += '    \n';
+  content += '    // 添加按钮组件类\n';
+  content += '    addComponents({\n';
+  content += '      \'.btn-primary\': {\n';
+  content += '        backgroundColor: theme(\'colors.btn-primary-bg\'),\n';
+  content += '        color: theme(\'colors.btn-primary-text\'),\n';
+  content += '        \'& svg\': {\n';
+  content += '          color: theme(\'colors.btn-primary-icon\'),\n';
+  content += '        },\n';
+  content += '      },\n';
+  content += '      \'.btn-secondary\': {\n';
+  content += '        backgroundColor: theme(\'colors.btn-secondary-bg\'),\n';
+  content += '        color: theme(\'colors.btn-secondary-text\'),\n';
+  content += '        \'& svg\': {\n';
+  content += '          color: theme(\'colors.btn-secondary-icon\'),\n';
+  content += '        },\n';
+  content += '      },\n';
+  content += '      \'.btn-tertiary\': {\n';
+  content += '        backgroundColor: theme(\'colors.btn-tertiary-bg\'),\n';
+  content += '        color: theme(\'colors.btn-tertiary-text\'),\n';
+  content += '        \'& svg\': {\n';
+  content += '          color: theme(\'colors.btn-tertiary-icon\'),\n';
+  content += '        },\n';
   content += '      },\n';
   content += '    });\n';
   content += '  }\n';

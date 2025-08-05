@@ -199,11 +199,11 @@ function generateColorSchemes(tokens) {
   code += `    inverseSurface: ${resolveColorReference(light.inverseSurface?.default?.value, tokens)},\n`;
   code += `    onInverseSurface: ${resolveColorReference(light.inverseSurface?.on?.value, tokens)},\n`;
   code += `    inversePrimary: ${resolveColorReference(light.inversePrimary?.default?.value, tokens)},\n`;
-  code += `    surfaceContainerLowest: ${resolveColorReference(light.surface?.lowest?.value, tokens)},\n`;
-  code += `    surfaceContainerLow: ${resolveColorReference(light.surface?.lowest?.value, tokens)},\n`;
-  code += `    surfaceContainer: ${resolveColorReference(light.surface?.default?.value, tokens)},\n`;
+  code += `    surfaceContainerLowest: ${resolveColorReference(light.surface?.low?.value, tokens)},\n`;
+  code += `    surfaceContainerLow: ${resolveColorReference(light.surface?.low?.value, tokens)},\n`;
+  code += `    surfaceContainer: ${resolveColorReference(light.surface?.container?.value, tokens)},\n`;
   code += `    surfaceContainerHigh: ${resolveColorReference(light.surface?.high?.value, tokens)},\n`;
-  code += `    surfaceContainerHighest: ${resolveColorReference(light.surface?.highest?.value, tokens)},\n`;
+  code += `    surfaceContainerHighest: ${resolveColorReference(light.surface?.high?.value, tokens)},\n`;
   code += `  );\n\n`;
   
   // Dark ColorScheme - 注意新结构中语义化颜色直接在 dark 层下
@@ -241,11 +241,11 @@ function generateColorSchemes(tokens) {
   code += `    inverseSurface: ${resolveColorReference(dark.inverseSurface?.default?.value, tokens)},\n`;
   code += `    onInverseSurface: ${resolveColorReference(dark.inverseSurface?.on?.value, tokens)},\n`;
   code += `    inversePrimary: ${resolveColorReference(dark.inversePrimary?.default?.value, tokens)},\n`;
-  code += `    surfaceContainerLowest: ${resolveColorReference(dark.surface?.lowest?.value, tokens)},\n`;
-  code += `    surfaceContainerLow: ${resolveColorReference(dark.surface?.lowest?.value, tokens)},\n`;
-  code += `    surfaceContainer: ${resolveColorReference(dark.surface?.default?.value, tokens)},\n`;
+  code += `    surfaceContainerLowest: ${resolveColorReference(dark.surface?.low?.value, tokens)},\n`;
+  code += `    surfaceContainerLow: ${resolveColorReference(dark.surface?.low?.value, tokens)},\n`;
+  code += `    surfaceContainer: ${resolveColorReference(dark.surface?.container?.value, tokens)},\n`;
   code += `    surfaceContainerHigh: ${resolveColorReference(dark.surface?.high?.value, tokens)},\n`;
-  code += `    surfaceContainerHighest: ${resolveColorReference(dark.surface?.highest?.value, tokens)},\n`;
+  code += `    surfaceContainerHighest: ${resolveColorReference(dark.surface?.high?.value, tokens)},\n`;
   code += `  );\n`;
   
   code += '}\n';
@@ -323,6 +323,120 @@ function generateSurfaceExtension(tokens) {
   code += `    surface: ${resolveColorReference(dark.surface?.default?.value, tokens)},\n`;
   code += `    surfaceHigh: ${resolveColorReference(dark.surface?.high?.value, tokens)},\n`;
   code += `    surfaceHighest: ${resolveColorReference(dark.surface?.highest?.value, tokens)},\n`;
+  code += '  );\n';
+  
+  code += '}\n';
+  return code;
+}
+
+/**
+ * 生成按钮样式 ThemeExtension
+ */
+function generateButtonStyles(tokens) {
+  const light = tokens.light || {};
+  const dark = tokens.dark || {};
+  
+  if (!light.button || !dark.button) return '';
+  
+  let code = '\n/// 按钮样式 Theme Extension\n';
+  code += '@immutable\n';
+  code += 'class ButtonStylesExtension extends ThemeExtension<ButtonStylesExtension> {\n';
+  
+  // Constructor
+  code += '  const ButtonStylesExtension({\n';
+  code += '    required this.primaryBackground,\n';
+  code += '    required this.primaryText,\n';
+  code += '    required this.primaryIconColor,\n';
+  code += '    required this.secondaryBackground,\n';
+  code += '    required this.secondaryText,\n';
+  code += '    required this.secondaryIconColor,\n';
+  code += '    required this.tertiaryBackground,\n';
+  code += '    required this.tertiaryText,\n';
+  code += '    required this.tertiaryIconColor,\n';
+  code += '  });\n\n';
+  
+  // Fields
+  code += '  final Color primaryBackground;\n';
+  code += '  final Color primaryText;\n';
+  code += '  final Color primaryIconColor;\n';
+  code += '  final Color secondaryBackground;\n';
+  code += '  final Color secondaryText;\n';
+  code += '  final Color secondaryIconColor;\n';
+  code += '  final Color tertiaryBackground;\n';
+  code += '  final Color tertiaryText;\n';
+  code += '  final Color tertiaryIconColor;\n';
+  
+  // copyWith method
+  code += '\n  @override\n';
+  code += '  ButtonStylesExtension copyWith({\n';
+  code += '    Color? primaryBackground,\n';
+  code += '    Color? primaryText,\n';
+  code += '    Color? primaryIconColor,\n';
+  code += '    Color? secondaryBackground,\n';
+  code += '    Color? secondaryText,\n';
+  code += '    Color? secondaryIconColor,\n';
+  code += '    Color? tertiaryBackground,\n';
+  code += '    Color? tertiaryText,\n';
+  code += '    Color? tertiaryIconColor,\n';
+  code += '  }) {\n';
+  code += '    return ButtonStylesExtension(\n';
+  code += '      primaryBackground: primaryBackground ?? this.primaryBackground,\n';
+  code += '      primaryText: primaryText ?? this.primaryText,\n';
+  code += '      primaryIconColor: primaryIconColor ?? this.primaryIconColor,\n';
+  code += '      secondaryBackground: secondaryBackground ?? this.secondaryBackground,\n';
+  code += '      secondaryText: secondaryText ?? this.secondaryText,\n';
+  code += '      secondaryIconColor: secondaryIconColor ?? this.secondaryIconColor,\n';
+  code += '      tertiaryBackground: tertiaryBackground ?? this.tertiaryBackground,\n';
+  code += '      tertiaryText: tertiaryText ?? this.tertiaryText,\n';
+  code += '      tertiaryIconColor: tertiaryIconColor ?? this.tertiaryIconColor,\n';
+  code += '    );\n';
+  code += '  }\n';
+  
+  // lerp method
+  code += '\n  @override\n';
+  code += '  ButtonStylesExtension lerp(ThemeExtension<ButtonStylesExtension>? other, double t) {\n';
+  code += '    if (other is! ButtonStylesExtension) {\n';
+  code += '      return this;\n';
+  code += '    }\n';
+  code += '    return ButtonStylesExtension(\n';
+  code += '      primaryBackground: Color.lerp(primaryBackground, other.primaryBackground, t)!,\n';
+  code += '      primaryText: Color.lerp(primaryText, other.primaryText, t)!,\n';
+  code += '      primaryIconColor: Color.lerp(primaryIconColor, other.primaryIconColor, t)!,\n';
+  code += '      secondaryBackground: Color.lerp(secondaryBackground, other.secondaryBackground, t)!,\n';
+  code += '      secondaryText: Color.lerp(secondaryText, other.secondaryText, t)!,\n';
+  code += '      secondaryIconColor: Color.lerp(secondaryIconColor, other.secondaryIconColor, t)!,\n';
+  code += '      tertiaryBackground: Color.lerp(tertiaryBackground, other.tertiaryBackground, t)!,\n';
+  code += '      tertiaryText: Color.lerp(tertiaryText, other.tertiaryText, t)!,\n';
+  code += '      tertiaryIconColor: Color.lerp(tertiaryIconColor, other.tertiaryIconColor, t)!,\n';
+  code += '    );\n';
+  code += '  }\n';
+  
+  // Light theme static instance
+  code += '\n  /// Light theme button styles\n';
+  code += '  static final light = ButtonStylesExtension(\n';
+  code += `    primaryBackground: ${resolveColorReference(light.button?.primary?.default?.background?.value, tokens)},\n`;
+  code += `    primaryText: ${resolveColorReference(light.button?.primary?.default?.text?.value, tokens)},\n`;
+  code += `    primaryIconColor: ${resolveColorReference(light.button?.primary?.default?.iconcolor?.value, tokens)},\n`;
+  code += `    secondaryBackground: ${resolveColorReference(light.button?.secondary?.default?.background?.value, tokens)},\n`;
+  code += `    secondaryText: ${resolveColorReference(light.button?.secondary?.default?.text?.value, tokens)},\n`;
+  code += `    secondaryIconColor: ${resolveColorReference(light.button?.secondary?.default?.iconcolor?.value, tokens)},\n`;
+  code += `    tertiaryBackground: ${resolveColorReference(light.button?.tertiary?.default?.background?.value, tokens)},\n`;
+  code += `    tertiaryText: ${resolveColorReference(light.button?.tertiary?.default?.text?.value, tokens)},\n`;
+  code += `    tertiaryIconColor: ${resolveColorReference(light.button?.tertiary?.default?.iconcolor?.value, tokens)},\n`;
+  code += '  );\n';
+  
+  // Dark theme static instance
+  code += '\n  /// Dark theme button styles\n';
+  code += '  static final dark = ButtonStylesExtension(\n';
+  code += `    primaryBackground: ${resolveColorReference(dark.button?.primary?.default?.background?.value, tokens)},\n`;
+  code += `    primaryText: ${resolveColorReference(dark.button?.primary?.default?.text?.value, tokens)},\n`;
+  code += `    primaryIconColor: ${resolveColorReference(dark.button?.primary?.default?.iconcolor?.value, tokens)},\n`;
+  code += `    secondaryBackground: ${resolveColorReference(dark.button?.secondary?.default?.background?.value, tokens)},\n`;
+  code += `    secondaryText: ${resolveColorReference(dark.button?.secondary?.default?.text?.value, tokens)},\n`;
+  code += `    secondaryIconColor: ${resolveColorReference(dark.button?.secondary?.default?.iconcolor?.value, tokens)},\n`;
+  code += `    tertiaryBackground: ${resolveColorReference(dark.button?.tertiary?.default?.background?.value, tokens)},\n`;
+  code += `    tertiaryText: ${resolveColorReference(dark.button?.tertiary?.default?.text?.value, tokens)},\n`;
+  code += `    tertiaryIconColor: ${resolveColorReference(dark.button?.tertiary?.default?.iconcolor?.value, tokens)},\n`;
   code += '  );\n';
   
   code += '}\n';
@@ -487,6 +601,9 @@ import 'package:flutter/material.dart';
     if (tokens.global?.fontFamily) {
       dartCode += '\n' + generateFontFamilyConstants(tokens.global.fontFamily);
     }
+    
+    // 生成按钮样式扩展
+    dartCode += generateButtonStyles(originalTokens);
     
     // 生成语义化颜色扩展
     dartCode += generateSemanticColors(originalTokens);
