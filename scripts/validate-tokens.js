@@ -25,6 +25,15 @@ function isValidNumber(value) {
 }
 
 /**
+ * 验证尺寸值：纯数字，或带合法 CSS 单位（如 100%、16px、1rem）
+ */
+function isValidDimension(value) {
+  if (isValidNumber(value)) return true;
+  return typeof value === 'string' &&
+    /^-?\d+(\.\d+)?(px|%|rem|em|vh|vw)$/.test(value.trim());
+}
+
+/**
  * 验证引用
  */
 function isValidReference(value) {
@@ -63,7 +72,7 @@ function validateToken(token, path) {
     case 'spacing':
     case 'borderRadius':
     case 'fontSizes':
-      if (!isValidNumber(token.value)) {
+      if (!isValidDimension(token.value)) {
         errors.push(`Invalid numeric value "${token.value}" at ${path}`);
       }
       break;

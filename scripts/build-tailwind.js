@@ -14,6 +14,17 @@ const OUTPUT_PATH = path.join(__dirname, '../packages/tailwind');
 fs.ensureDirSync(OUTPUT_PATH);
 
 /**
+ * 尺寸值转 CSS：纯数字追加 px，已带单位（如 100%、1rem）原样输出
+ */
+function toPxValue(value) {
+  if (typeof value === 'number') return `${value}px`;
+  if (typeof value === 'string' && /^-?\d+(\.\d+)?$/.test(value.trim())) {
+    return `${value.trim()}px`;
+  }
+  return value;
+}
+
+/**
  * 转换颜色格式
  */
 function processColors(colors) {
@@ -41,7 +52,7 @@ function processSpacing(spacing) {
   
   Object.entries(spacing).forEach(([key, config]) => {
     // 保持数字键名以兼容 p-4, m-8 等类名
-    result[key] = `${config.value}px`;
+    result[key] = toPxValue(config.value);
   });
   
   // 添加额外的语义化命名
@@ -63,7 +74,7 @@ function processBorderRadius(radius) {
   const result = {};
   
   Object.entries(radius).forEach(([key, config]) => {
-    result[key] = config.value === '9999' ? '9999px' : `${config.value}px`;
+    result[key] = toPxValue(config.value);
   });
   
   return result;
@@ -129,7 +140,7 @@ function processFontSizes(fontSize) {
   const result = {};
   
   Object.entries(fontSize).forEach(([key, config]) => {
-    result[key] = `${config.value}px`;
+    result[key] = toPxValue(config.value);
   });
   
   return result;

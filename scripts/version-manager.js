@@ -160,6 +160,31 @@ JSON.flatten = function(data) {
 };
 
 /**
+ * 更新 Flutter 包的 CHANGELOG（pub.dev 发布校验要求 CHANGELOG 包含当前版本）
+ */
+async function updateChangelog(newVersion, type) {
+  const changelogPath = path.join(__dirname, '../packages/flutter/CHANGELOG.md');
+  if (!(await fs.pathExists(changelogPath))) return;
+
+  const content = await fs.readFile(changelogPath, 'utf8');
+  if (content.includes(`## ${newVersion}`)) return;
+
+  const date = new Date().toISOString().slice(0, 10);
+  const summary = {
+    patch: 'Update design token values from Figma',
+    minor: 'Add new design tokens from Figma',
+    major: 'Breaking changes to design tokens',
+  }[type] || 'Update design tokens from Figma';
+
+  const entry = `## ${newVersion}\n\n- ${summary} (${date})\n\n`;
+  const updated = content.includes('# Changelog')
+    ? content.replace('# Changelog\n\n', `# Changelog\n\n${entry}`)
+    : `# Changelog\n\n${entry}${content}`;
+  await fs.writeFile(changelogPath, updated);
+  console.log(`✅ CHANGELOG updated for ${newVersion}`);
+}
+
+/**
  * 更新版本号
  */
 async function updateVersion(type = 'patch') {
@@ -190,6 +215,9 @@ async function updateVersion(type = 'patch') {
     await fs.writeFile(pubspecPath, pubspecContent);
   }
   
+  // 更新 Flutter CHANGELOG
+  await updateChangelog(newVersion, type);
+
   // 保存新的 token 信息（这个文件会被提交）
   const newHash = await getTokensHash();
   

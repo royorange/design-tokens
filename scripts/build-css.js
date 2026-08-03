@@ -24,6 +24,17 @@ function toCssVarName(path) {
 }
 
 /**
+ * 尺寸值转 CSS：纯数字追加 px，已带单位（如 100%、1rem）原样输出
+ */
+function toPxValue(value) {
+  if (typeof value === 'number') return `${value}px`;
+  if (typeof value === 'string' && /^-?\d+(\.\d+)?$/.test(value.trim())) {
+    return `${value.trim()}px`;
+  }
+  return value;
+}
+
+/**
  * 生成 CSS 变量
  */
 function generateCssVariables(tokens) {
@@ -111,10 +122,9 @@ function generateCssVarsFromObject(obj, path = [], indent = '  ') {
       css += generateCssVarsFromObject(value, currentPath, indent);
     } else if (value && value.value) {
       const varName = toCssVarName(currentPath);
-      const varValue = value.type === 'spacing' ? `${value.value}px` : 
-                      value.type === 'borderRadius' ? `${value.value}px` :
-                      value.type === 'fontSizes' ? `${value.value}px` :
-                      value.value;
+      const varValue = ['spacing', 'borderRadius', 'fontSizes'].includes(value.type)
+        ? toPxValue(value.value)
+        : value.value;
       css += `${indent}${varName}: ${varValue};\n`;
     }
   });
@@ -188,21 +198,21 @@ function generateJsTokens(tokens) {
     // Spacing
     if (tokens.global.spacing) {
       Object.entries(tokens.global.spacing).forEach(([key, config]) => {
-        jsTokens.spacing[key] = `${config.value}px`;
+        jsTokens.spacing[key] = toPxValue(config.value);
       });
     }
     
     // Border radius
     if (tokens.global.radius) {
       Object.entries(tokens.global.radius).forEach(([key, config]) => {
-        jsTokens.radius[key] = config.value === 9999 ? '9999px' : `${config.value}px`;
+        jsTokens.radius[key] = toPxValue(config.value);
       });
     }
     
     // Font sizes
     if (tokens.global.fontSize) {
       Object.entries(tokens.global.fontSize).forEach(([key, config]) => {
-        jsTokens.fontSize[key] = `${config.value}px`;
+        jsTokens.fontSize[key] = toPxValue(config.value);
       });
     }
     
