@@ -5,8 +5,9 @@ homepage: https://github.com/royorange/design-tokens
 repository: https://github.com/royorange/design-tokens/tree/main/packages/flutter
 
 environment:
-  sdk: ">=2.17.0 <4.0.0"
-  flutter: ">=3.0.0"
+  # surfaceContainer* 等 ColorScheme 参数需要 Flutter 3.22+（Dart 3.4+）
+  sdk: ">=3.4.0 <4.0.0"
+  flutter: ">=3.22.0"
 
 dependencies:
   flutter:
@@ -15,4 +16,4 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.0
+  flutter_lints: ^5.0.0
