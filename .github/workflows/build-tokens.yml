@@ -158,7 +158,7 @@ jobs:
         run: pnpm run build:css
       
       - name: Run tests
-        run: npm test || true
+        run: pnpm run test
       
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -209,17 +209,28 @@ jobs:
           name: built-packages
           path: .
       
+      # 若该版本已发布则跳过（支持 workflow 重跑），其他失败会让 CI 变红
       - name: Publish Tailwind package
         run: |
           cd packages/tailwind
-          pnpm publish --access public --no-git-checks || true
+          PKG_ID="$(node -p 'require("./package.json").name')@$(node -p 'require("./package.json").version')"
+          if npm view "$PKG_ID" version > /dev/null 2>&1; then
+            echo "ℹ️ $PKG_ID 已发布，跳过"
+          else
+            pnpm publish --access public --no-git-checks
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      
+
       - name: Publish CSS package
         run: |
           cd packages/css
-          pnpm publish --access public --no-git-checks || true
+          PKG_ID="$(node -p 'require("./package.json").name')@$(node -p 'require("./package.json").version')"
+          if npm view "$PKG_ID" version > /dev/null 2>&1; then
+            echo "ℹ️ $PKG_ID 已发布，跳过"
+          else
+            pnpm publish --access public --no-git-checks
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -244,17 +255,31 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.16.0'
-      
-      - name: Setup pub credentials
+          # 生成代码使用 ColorScheme surfaceContainer* 参数，需要 Flutter 3.22+
+          flutter-version: '3.38.9'
+
+      # 发布前门禁：analyze 有 error/warning 时终止，避免发布编译不过的包
+      - name: Analyze Flutter package
         run: |
+          cd packages/flutter
+          flutter pub get
+          dart analyze --fatal-warnings lib
+
+      - name: Setup pub credentials
+        env:
+          PUB_CREDENTIALS: ${{ secrets.PUB_CREDENTIALS }}
+        run: |
+          if [ -z "$PUB_CREDENTIALS" ]; then
+            echo "::error::PUB_CREDENTIALS secret 未配置，请先在本地执行 dart pub login 并将凭证保存到 GitHub Secrets"
+            exit 1
+          fi
           mkdir -p ~/.config/dart
-          echo '${{ secrets.PUB_CREDENTIALS }}' > ~/.config/dart/pub-credentials.json
-      
+          printf '%s' "$PUB_CREDENTIALS" > ~/.config/dart/pub-credentials.json
+
       - name: Publish to pub.dev
         run: |
           cd packages/flutter
-          flutter pub publish --force || true
+          flutter pub publish --force
 
   # 第五步：创建 Release
   create-release:

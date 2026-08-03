@@ -62,15 +62,27 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.16.0'
-      
-      - name: Setup pub credentials
+          # 生成代码使用 ColorScheme surfaceContainer* 参数，需要 Flutter 3.22+
+          flutter-version: '3.38.9'
+
+      # 发布前门禁：analyze 有 error/warning 时终止，避免发布编译不过的包
+      - name: Analyze Flutter package
         run: |
-          mkdir -p ~/.pub-cache
-          cat <<EOF > ~/.pub-cache/credentials.json
-          ${{ secrets.PUB_CREDENTIALS }}
-          EOF
-      
+          cd packages/flutter
+          flutter pub get
+          dart analyze --fatal-warnings lib
+
+      - name: Setup pub credentials
+        env:
+          PUB_CREDENTIALS: ${{ secrets.PUB_CREDENTIALS }}
+        run: |
+          if [ -z "$PUB_CREDENTIALS" ]; then
+            echo "::error::PUB_CREDENTIALS secret 未配置，请先在本地执行 dart pub login 并将凭证保存到 GitHub Secrets"
+            exit 1
+          fi
+          mkdir -p ~/.config/dart
+          printf '%s' "$PUB_CREDENTIALS" > ~/.config/dart/pub-credentials.json
+
       - name: Publish Flutter package
         run: |
           cd packages/flutter
